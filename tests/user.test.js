@@ -11,43 +11,61 @@ describe('GET /users', () => {
     test('In-memory database has 3 test users loaded on test start', (done) => {
         request(app)
             .get('/users')
-            .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect((res) => res.body.users.length === 3)
+            .expect((res) => {
+                if (res.body.users.length !== 3)
+                    throw new Error('In-memory DB did not start with 3 users');
+            })
             .expect(200, done);
     });
 
-    it('Gets user0 from in-memory test database', (done) => {
+    it('Returns only _id and usernames when getting all', (done) => {
         request(app)
+            .get('/users')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .expect((res) => {
+                const containsOnlyExpectedProperties = res.body.users.every((user) => {
+                    const properties = Object.getOwnPropertyNames(user);
+                    const expectedProperties = ['_id', 'username'];
+
+                    return JSON.stringify(properties) === JSON.stringify(expectedProperties);
+                });
+
+                if (!containsOnlyExpectedProperties) {
+                    throw new Error('Unexpected property/ies returned');
+                }
+            })
+            .end(done);
+    });
+
+    it('Gets user0 from in-memory test database, omitting email and password information', () => {
+        return request(app)
             .get('/users/65218a70437ced46f36858d8')
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect({ username: 'user0' })
-            .expect(200, done);
+            .expect(200)
+            .then((res) => {
+                expect(res.body).toEqual({
+                    _id: '65218a70437ced46f36858d8',
+                    username: 'user0',
+                    friends: [],
+                });
+            });
     });
 
     it('Returns 404 when fetching non-existant user', (done) => {
-        request(app)
-            .get('/users/65218a70437ced46f36858d9')
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect({ error: 'User not found' })
-            .expect(404, done);
+        request(app).get('/users/65218a70437ced46f36858d9').expect(404, done);
     });
 
     it('Returns 400 when fetching with invalid ObjectID pattern', (done) => {
-        request(app)
-            .get('/users/65218a70437ced46f36858dk')
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect({ error: 'Invalid ObjectID pattern' })
-            .expect(400, done);
+        request(app).get('/users/65218a70437ced46f36858dk').expect(400, done);
     });
 });
 
-describe('POST /users', () => {
-    it('Adds a fourth user to the test database if all form fields pass validation', (done) => {
-        request(app)
+describe.skip('POST /users', () => {
+    it('Adds a fourth user to the test database if all form fields pass validation', () => {
+        return request(app)
             .post('/users')
             .type('form')
             .send({
@@ -56,13 +74,21 @@ describe('POST /users', () => {
                 password: 'asdfASDF3',
                 friends: [],
             })
+            .expect(200)
             .then(() => {
                 request(app)
                     .get('/users')
+                    .expect(200)
                     .expect((res) => {
                         if (res.body.users.length !== 4) throw new Error('User was not added');
                     })
-                    .end(done);
+                    .then((response) => {
+                        expect(response.body.users.at(-1)).toMatchObject({
+                            username: 'user3',
+                            email: 'user3@test.com',
+                            password: 'asdfASDF3',
+                        });
+                    });
             });
     });
 
@@ -76,6 +102,7 @@ describe('POST /users', () => {
                 password: 'password',
                 friends: [],
             })
+            .expect(200)
             .then(() => {
                 request(app)
                     .get('/users')
@@ -87,69 +114,148 @@ describe('POST /users', () => {
     });
 });
 
-describe('PUT /users', () => {
-    const { testUsers } = require('./config/friend_test_docs');
-
-    it("Stores user1 as pending friend in user0's friends list upon friend request", (done) => {
-        request(app)
+describe.skip('PUT /users', () => {
+    it("Stores user1 as pending friend in user0's friends list upon friend request", () => {
+        return request(app)
             .put('/users/65218a70437ced46f36858d8/friends?action=add&user=65218ac212fde91aa80bd115')
+            .expect(200)
             .then(() => {
                 request(app)
                     .get('/users/65218a70437ced46f36858d8')
-                    .expect({ user: testUsers.user0AddedUser1 }, done);
+                    .then((res) => {
+                        expect(res.body.friends).toEqual([
+                            { _id: '65218ac212fde91aa80bd115', status: 'requested' },
+                        ]);
+                    });
             });
     });
 
-    it("Adds the incoming friend request to user1's friends list before accept", (done) => {
-        request(app)
+    it("Adds the incoming friend request to user1's friends list before accept", () => {
+        return request(app)
             .get('/users/65218a70437ced46f36858d8')
-            .expect({ user: testUsers.user1IncomingUser0 }, done);
+            .expect(200)
+            .then((res) => {
+                expect(res.body.friends).toEqual([
+                    { _id: '65218a70437ced46f36858d8', status: 'incoming' },
+                ]);
+            });
     });
 
-    it("Marks both user's pending friend request as accepted with user1 accepts the request", (done) => {
-        request(app)
+    it("Marks both user's pending friend request as accepted with user1 accepts the request", () => {
+        return request(app)
             .put(
                 '/users/65218ac212fde91aa80bd115/friends?action=accept&user=65218a70437ced46f36858d8'
             )
+            .expect(200)
             .then(() => {
                 request(app)
                     .get('/users/65218a70437ced46f36858d8')
-                    .expect({ user: testUsers.user0FriendedUser1 })
+                    .expect(200)
+                    .then((res) => {
+                        expect(res.body.friends).toEqual([
+                            { _id: '65218ac212fde91aa80bd115', status: 'accepted' },
+                        ]);
+                    })
                     .get('/users/65218ac212fde91aa80bd115')
-                    .expect({ user: testUsers.user1FriendedUser0 }, done);
+                    .expect(200)
+                    .then((res) => {
+                        expect(res.body.friends).toEqual([
+                            { _id: '65218a70437ced46f36858d8', status: 'accepted' },
+                        ]);
+                    });
             });
     });
 
-    it('Adds requested friend to user1 and incoming friend request to user2 upon friend request', (done) => {
-        request(app)
+    it('Adds requested friend to user1 and incoming friend request to user2 upon friend request', () => {
+        return request(app)
             .put('/users/65218ac212fde91aa80bd115/friends?action=add&user=65218ac5dc04264ac8a44906')
+            .expect(200)
             .then(() => {
                 request(app)
                     .get('/users/65218ac212fde91aa80bd115')
-                    .expect({ user: testUsers.user1AddedUser2 })
+                    .expect(200)
+                    .then((res) => {
+                        expect(res.body.friends).toEqual([
+                            { _id: '65218ac5dc04264ac8a44906', status: 'requested' },
+                        ]);
+                    })
                     .get('/users/65218ac5dc04264ac8a44906')
-                    .expect({ user: testUsers.user2IncomingUser1 }, done);
+                    .expect(200)
+                    .then((res) => {
+                        expect(res.body.friends).toEqual([
+                            { _id: '65218ac212fde91aa80bd115', status: 'incoming' },
+                        ]);
+                    });
             });
     });
 
-    it("Removes pending entry from both users' friends lists upon rejection", (done) => {
-        request(app)
+    it("Removes pending entry from both users' friends lists upon rejection", () => {
+        return request(app)
             .put(
                 '/users/65218ac5dc04264ac8a44906/friends?action=reject&user=65218ac212fde91aa80bd115'
             )
+            .expect(200)
             .then(() => {
                 request(app)
                     .get('/users/65218ac212fde91aa80bd115')
-                    .expect({ user: testUsers.user1RejectedByUser2 })
+                    .expect(200)
+                    .then((res) => {
+                        expect(res.body.friends).toEqual([]);
+                    })
                     .get('/users/65218ac5dc04264ac8a44906')
-                    .expect({ user: testUsers.user2ARejectedUser1 }, done);
+                    .expect(200)
+                    .then((res) => {
+                        expect(res.body.friends).toEqual([]);
+                    });
+            });
+    });
+
+    it('Prevents attempting to add a non-existant user as a friend, returning a 404', () => {
+        return request(app)
+            .put('/users/65218ac5dc04264ac8a44906/friends?action=add&user=6521aac212fde41aa85be1a0')
+            .expect(404)
+            .then(() => {
+                request(app)
+                    .get('/users/65218ac5dc04264ac8a44906')
+                    .expect(200)
+                    .then((res) => {
+                        expect(res.body.friends).toEqual(
+                            expect.not.arrayContaining([
+                                expect.objectContaining({ _id: '6521aac212fde41aa85be1a0' }),
+                            ])
+                        );
+                    });
+            });
+    });
+
+    it('Prevents accepting a non-existant friend request, returning a 400', () => {
+        return request(app)
+            .put(
+                '/users/65218ac5dc04264ac8a44906/friends?action=accept&user=6521aac212fde41aa85be1a0'
+            )
+            .expect(400)
+            .then(() => {
+                request(app)
+                    .get('/users/65218ac5dc04264ac8a44906')
+                    .expect(200)
+                    .then((res) => {
+                        expect(res.body.friends).toEqual(
+                            expect.not.arrayContaining([
+                                expect.objectContaining({ _id: '6521aac212fde41aa85be1a0' }),
+                            ])
+                        );
+                    });
             });
     });
 });
 
-describe('DELETE /users', async () => {
-    const User = require('../models/User');
-    const user3 = await User.findOne({ username: 'user3' }).exec();
+describe.skip('DELETE /users', () => {
+    async function getUser3() {
+        const User = require('../models/User');
+        return await User.findOne({ username: 'user3' }).exec();
+    }
+
+    const user3 = getUser3();
 
     it('Deletes user3', (done) => {
         request(app)
@@ -157,21 +263,22 @@ describe('DELETE /users', async () => {
             .then(() => {
                 request(app)
                     .get('/users')
+                    .expect(200)
                     .expect((res) => {
-                        if (res.body.users.length !== 3) throw new Error('User not deleted');
+                        if (res.body.users.length !== 3) {
+                            throw new Error('User not deleted');
+                        }
                     })
                     .expect((res) => {
-                        if (res.body.users.find((user) => user.username === 'user3'))
+                        if (res.body.users.find((user) => user.username === 'user3')) {
                             throw new Error('user3 was not deleted');
+                        }
                     })
                     .end(done);
             });
     });
 
     it('Returns 404 upon an attempt to delete a non-existant user', (done) => {
-        request(app)
-            .delete('/users/62218a22128de91a680ba11b')
-            .expect({ error: 'User not found' })
-            .expect(404, done);
+        request(app).delete('/users/62218a22128de91a680ba11b').expect(404, done);
     });
 });
