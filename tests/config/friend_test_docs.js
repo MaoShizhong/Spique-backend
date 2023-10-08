@@ -1,0 +1,58 @@
+exports.testUsers = {
+    user0AddedUser1: {
+        _id: '65218a70437ced46f36858d8',
+        username: 'user0',
+        email: 'user0@test.com',
+        password: 'asdfASDF0',
+        friends: [{ _id: '65218ac212fde91aa80bd115', status: 'requested' }],
+    },
+    user1IncomingUser0: {
+        _id: '65218ac212fde91aa80bd115',
+        username: 'user1',
+        email: 'user1@test.com',
+        password: 'asdfASDF1',
+        friends: [{ _id: '65218a70437ced46f36858d8', status: 'incoming' }],
+    },
+    user0FriendedUser1: {
+        _id: '65218a70437ced46f36858d8',
+        username: 'user0',
+        email: 'user0@test.com',
+        password: 'asdfASDF0',
+        friends: [{ _id: '65218ac212fde91aa80bd115', status: 'accepted' }],
+    },
+    user1FriendedUser0: {
+        _id: '65218ac212fde91aa80bd115',
+        username: 'user1',
+        email: 'user1@test.com',
+        password: 'asdfASDF1',
+        friends: [{ _id: '65218a70437ced46f36858d8', status: 'accepted' }],
+    },
+    user1AddedUser2: {
+        _id: '65218ac212fde91aa80bd115',
+        username: 'user1',
+        email: 'user1@test.com',
+        password: 'asdfASDF1',
+        friends: [{ _id: '65218ac5dc04264ac8a44906', status: 'requested' }],
+    },
+    user2IncomingUser1: {
+        _id: '65218ac5dc04264ac8a44906',
+        username: 'user2',
+        email: 'user2@test.com',
+        password: 'asdfASDF2',
+        friends: [{ _id: '65218ac212fde91aa80bd115', status: 'incoming' }],
+    },
+    user1RejectedByUser2: {
+        _id: '65218ac212fde91aa80bd115',
+        username: 'user1',
+        email: 'user1@test.com',
+        password: 'asdfASDF1',
+        friends: [],
+    },
+    user2ARejectedUser1: {
+        _id: '65218ac5dc04264ac8a44906',
+        username: 'user2',
+        email: 'user2@test.com',
+        password: 'asdfASDF2',
+        friends: [],
+    },
+};
