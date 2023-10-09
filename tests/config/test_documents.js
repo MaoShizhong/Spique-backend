@@ -5,6 +5,7 @@ const IDs = {
         new ObjectId('65218a70437ced46f36858d8'),
         new ObjectId('65218ac212fde91aa80bd115'),
         new ObjectId('65218ac5dc04264ac8a44906'),
+        new ObjectId('65218ac5dc04264ac8a44918'),
     ],
     messageIDs: [
         new ObjectId('65218ac99fdd95b5505e56f9'),
@@ -33,7 +34,7 @@ const users = [
         username: 'user1',
         email: 'user1@test.com',
         password: 'asdfASDF1',
-        friends: [],
+        friends: [{ user: IDs.userIDs[3], status: 'accepted' }],
     },
     {
         _id: IDs.userIDs[2],
@@ -41,6 +42,13 @@ const users = [
         email: 'user2@test.com',
         password: 'asdfASDF2',
         friends: [],
+    },
+    {
+        _id: IDs.userIDs[3],
+        username: 'user1Friend',
+        email: 'user1Friend@test.com',
+        password: 'asdfASDF1F',
+        friends: [{ user: IDs.userIDs[1], status: 'accepted' }],
     },
 ];
 
@@ -102,4 +110,4 @@ const channels = [
     },
 ];
 
-module.exports = { users, messages, channels };
+module.exports = { IDs, users, messages, channels };

@@ -7,19 +7,22 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use('/users', userRouter);
 
+const { userIDs } = require('./config/test_documents').IDs;
+const users = userIDs.map((objectId) => objectId.valueOf());
+
 describe('GET /users', () => {
-    test('In-memory database has 3 test users loaded on test start', (done) => {
+    test(`In-memory database has ${users.length} test users loaded on test start`, (done) => {
         request(app)
             .get('/users')
             .expect('Content-Type', /json/)
             .expect((res) => {
-                if (res.body.users.length !== 3)
-                    throw new Error('In-memory DB did not start with 3 users');
+                if (res.body.users.length !== users.length)
+                    throw new Error('In-memory DB did not start with 4 users');
             })
             .expect(200, done);
     });
 
-    it('Returns only _id and usernames when getting all', (done) => {
+    it('Returns only _id and usernames when getting all users', (done) => {
         request(app)
             .get('/users')
             .expect('Content-Type', /json/)
@@ -41,16 +44,32 @@ describe('GET /users', () => {
 
     it('Gets user0 from in-memory test database, omitting email and password information', () => {
         return request(app)
-            .get('/users/65218a70437ced46f36858d8')
+            .get(`/users/${users[0]}`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
             .then((res) => {
-                expect(res.body).toEqual({
-                    _id: '65218a70437ced46f36858d8',
+                expect(res.body.user).toEqual({
+                    _id: users[0],
                     username: 'user0',
                     friends: [],
                 });
+            });
+    });
+
+    it("Gets user1's friends list and populates it with user1Friend's username", () => {
+        return request(app)
+            .get(`/users/${users[1]}/friends`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .then((res) => {
+                expect(res.body).toEqual([
+                    {
+                        user: { _id: users[3], username: 'user1Friend' },
+                        status: 'accepted',
+                    },
+                ]);
             });
     });
 
@@ -80,7 +99,9 @@ describe('POST /users', () => {
                     .get('/users')
                     .expect(200)
                     .expect((res) => {
-                        if (res.body.users.length !== 4) throw new Error('User was not added');
+                        if (res.body.users.length !== users.length + 1) {
+                            throw new Error('User was not added');
+                        }
                     })
                     .then((response) => {
                         expect(response.body.users.at(-1)).toMatchObject({
@@ -105,7 +126,9 @@ describe('POST /users', () => {
                 request(app)
                     .get('/users')
                     .expect((res) => {
-                        if (res.body.users.length !== 4) throw new Error('User incorrectly added');
+                        if (res.body.users.length !== users.length + 1) {
+                            throw new Error('User incorrectly added');
+                        }
                     })
                     .end(done);
             });
@@ -126,180 +149,158 @@ describe('POST /users', () => {
                 request(app)
                     .get('/users')
                     .expect((res) => {
-                        if (res.body.users.length !== 4) throw new Error('User incorrectly added');
+                        if (res.body.users.length !== users.length + 1) {
+                            throw new Error('User incorrectly added');
+                        }
                     })
                     .end(done);
             });
     });
 });
 
-describe.skip('PUT /users', () => {
-    async function getUser3() {
-        const User = require('../models/User');
-        return await User.findOne({ username: 'user3' }).exec();
-    }
+describe('PUT /users', () => {
+    const { userIDs } = require('./config/test_documents').IDs;
+    const users = userIDs.map((objectId) => objectId.valueOf());
 
-    const user3 = getUser3();
+    it("Stores user2 as pending friend in user0's friends list upon friend request", async () => {
+        const putRes = await request(app).put(
+            `/users/${users[0]}/friends?action=add&userID=${users[2]}`
+        );
+        expect(putRes.status).toEqual(200);
 
-    it("Stores user3 as pending friend in user0's friends list upon friend request", () => {
-        return request(app)
-            .put(`/users/65218a70437ced46f36858d8/friends?action=add&user=${user3._id}`)
-            .expect(200)
-            .then(() => {
-                request(app)
-                    .get('/users/65218a70437ced46f36858d8')
-                    .then((res) => {
-                        expect(res.body.friends).toEqual([{ _id: user3._id, status: 'requested' }]);
-                    });
-            });
+        const getRes = await request(app).get(`/users/${users[0]}/friends`);
+        expect(getRes.status).toEqual(200);
+        expect(getRes.body).toEqual([
+            { user: { _id: users[2], username: 'user2' }, status: 'requested' },
+        ]);
     });
 
-    it("Adds the incoming friend request to user3's friends list before accept", () => {
+    it("Adds the incoming friend request to user2's friends list before accept", () => {
         return request(app)
-            .get(`/users/${user3._id}`)
+            .get(`/users/${users[2]}/friends`)
             .expect(200)
             .then((res) => {
-                expect(res.body.friends).toEqual([
-                    { _id: '65218a70437ced46f36858d8', status: 'incoming' },
+                expect(res.body).toEqual([
+                    {
+                        user: { _id: users[0], username: 'user0' },
+                        status: 'incoming',
+                    },
                 ]);
             });
     });
 
-    it("Marks both users' pending friend requests as accepted when user3 accepts", () => {
-        return request(app)
-            .put(`/users/${user3._id}/friends?action=accept&user=65218a70437ced46f36858d8`)
-            .expect(200)
-            .then(() => {
-                request(app)
-                    .get('/users/65218a70437ced46f36858d8')
-                    .expect(200)
-                    .then((res) => {
-                        expect(res.body.friends).toEqual([{ _id: user3._id, status: 'accepted' }]);
-                    })
-                    .get(`/users/${user3._id}`)
-                    .expect(200)
-                    .then((res) => {
-                        expect(res.body.friends).toEqual([
-                            { _id: '65218a70437ced46f36858d8', status: 'accepted' },
-                        ]);
-                    });
-            });
+    it("Marks both user0 and user2's pending friend requests as accepted when user2 accepts", async () => {
+        const putRes = await request(app).put(
+            `/users/${users[2]}/friends?action=accept&userID=${users[0]}`
+        );
+        expect(putRes.status).toBe(200);
+
+        const user0Res = await request(app).get(`/users/${users[0]}/friends`);
+        expect(user0Res.status).toBe(200);
+        expect(user0Res.body).toEqual([
+            {
+                user: { _id: users[2], username: 'user2' },
+                status: 'accepted',
+            },
+        ]);
+
+        const user2Res = await request(app).get(`/users/${users[2]}/friends`);
+        expect(user2Res.status).toBe(200);
+        expect(user2Res.body).toEqual([
+            {
+                user: { _id: users[0], username: 'user0' },
+                status: 'accepted',
+            },
+        ]);
     });
 
-    it('Adds requested friend to user3 and incoming friend request to user2 upon friend request', () => {
-        return request(app)
-            .put(`/users/${user3._id}/friends?action=add&user=65218ac5dc04264ac8a44906`)
-            .expect(200)
-            .then(() => {
-                request(app)
-                    .get(`/users/${user3._id}`)
-                    .expect(200)
-                    .then((res) => {
-                        expect(res.body.friends).toEqual([
-                            { _id: '65218a70437ced46f36858d8', status: 'accepted' },
-                            { _id: '65218ac5dc04264ac8a44906', status: 'requested' },
-                        ]);
-                    })
-                    .get('/users/65218ac5dc04264ac8a44906')
-                    .expect(200)
-                    .then((res) => {
-                        expect(res.body.friends).toEqual([{ _id: user3._id, status: 'incoming' }]);
-                    });
-            });
+    it('Adds requested friend to user1 and incoming friend request to user2 upon friend request', async () => {
+        const putRes = await request(app).put(
+            `/users/${users[1]}/friends?action=add&userID=${users[2]}`
+        );
+        expect(putRes.status).toEqual(200);
+
+        const user1Res = await request(app).get(`/users/${users[1]}/friends`);
+        expect(user1Res.status).toEqual(200);
+        expect(user1Res.body).toEqual([
+            {
+                user: { _id: users[3], username: 'user1Friend' },
+                status: 'accepted',
+            },
+            { user: { _id: users[2], username: 'user2' }, status: 'requested' },
+        ]);
+
+        const user2Res = await request(app).get(`/users/${users[2]}/friends`);
+        expect(user2Res.status).toEqual(200);
+        expect(user2Res.body).toEqual([
+            { user: { _id: users[0], username: 'user0' }, status: 'accepted' },
+            { user: { _id: users[1], username: 'user1' }, status: 'incoming' },
+        ]);
     });
 
-    it("Removes pending entry from both users' friends lists upon rejection", () => {
-        return request(app)
-            .put(`/users/65218ac5dc04264ac8a44906/friends?action=reject&user=${user3._id}`)
-            .expect(200)
-            .then(() => {
-                request(app)
-                    .get(`/users/${user3._id}`)
-                    .expect(200)
-                    .then((res) => {
-                        expect(res.body.friends).toEqual([
-                            { _id: '65218a70437ced46f36858d8', status: 'accepted' },
-                        ]);
-                    })
-                    .get('/users/65218ac5dc04264ac8a44906')
-                    .expect(200)
-                    .then((res) => {
-                        expect(res.body.friends).toEqual([]);
-                    });
-            });
+    it("Removes pending entry from both users' friends lists upon rejection", async () => {
+        const putRes = await request(app).put(
+            `/users/${users[2]}/friends?action=reject&userID=${users[1]}`
+        );
+        expect(putRes.status).toEqual(200);
+
+        const user1Res = await request(app).get(`/users/${users[1]}/friends`);
+        expect(user1Res.status).toEqual(200);
+        expect(user1Res.body).toEqual([
+            {
+                user: { _id: users[3], username: 'user1Friend' },
+                status: 'accepted',
+            },
+        ]);
+
+        const user2Res = await request(app).get(`/users/${users[2]}/friends`);
+        expect(user2Res.status).toEqual(200);
+        expect(user2Res.body).toEqual([
+            { user: { _id: users[0], username: 'user0' }, status: 'accepted' },
+        ]);
     });
 
-    it('Prevents attempting to add a non-existant user as a friend, returning a 404', () => {
-        return request(app)
-            .put('/users/65218ac5dc04264ac8a44906/friends?action=add&user=6521aac212fde41aa85be1a0')
-            .expect(404)
-            .then(() => {
-                request(app)
-                    .get('/users/65218ac5dc04264ac8a44906')
-                    .expect(200)
-                    .then((res) => {
-                        expect(res.body.friends).toEqual(
-                            expect.not.arrayContaining([
-                                expect.objectContaining({ _id: '6521aac212fde41aa85be1a0' }),
-                            ])
-                        );
-                    });
-            });
+    it('Prevents attempting to add a non-existant user as a friend, returning a 404', async () => {
+        const putRes = await request(app).put(
+            `/users/${users[2]}/friends?action=add&userID=6521aac212fde41aa85be1a0`
+        );
+        expect(putRes.status).toEqual(404);
+
+        const user2Res = await request(app).get(`/users/${users[2]}/friends`);
+        expect(user2Res.status).toEqual(200);
+        expect(user2Res.body).toEqual([
+            { user: { _id: users[0], username: 'user0' }, status: 'accepted' },
+        ]);
     });
 
-    it('Prevents accepting a non-existant friend request, returning a 400', () => {
-        return request(app)
-            .put(
-                '/users/65218ac5dc04264ac8a44906/friends?action=accept&user=6521aac212fde41aa85be1a0'
-            )
-            .expect(400)
-            .then(() => {
-                request(app)
-                    .get('/users/65218ac5dc04264ac8a44906')
-                    .expect(200)
-                    .then((res) => {
-                        expect(res.body.friends).toEqual(
-                            expect.not.arrayContaining([
-                                expect.objectContaining({ _id: '6521aac212fde41aa85be1a0' }),
-                            ])
-                        );
-                    });
-            });
+    it('Prevents accepting a non-existant friend request, returning a 400', async () => {
+        const putRes = await request(app).put(
+            `/users/${users[2]}/friends?action=accept&userID=645eaae21267e41aa35ba2a2`
+        );
+        expect(putRes.status).toEqual(404);
+
+        const user2Res = await request(app).get(`/users/${users[2]}/friends`);
+        expect(user2Res.status).toEqual(200);
+        expect(user2Res.body).toEqual([
+            { user: { _id: users[0], username: 'user0' }, status: 'accepted' },
+        ]);
     });
 });
 
-describe.skip('DELETE /users', () => {
-    async function getUser3() {
-        const User = require('../models/User');
-        return await User.findOne({ username: 'user3' }).exec();
-    }
+describe('DELETE /users', () => {
+    it('Deletes user1Friend', async () => {
+        const deleteRes = await request(app).delete(`/users/${users[3]}`);
+        expect(deleteRes.status).toBe(200);
 
-    const user3 = getUser3();
-
-    it('Deletes user3', (done) => {
-        request(app)
-            .delete(`/users/${user3._id}`)
-            .then(() => {
-                request(app)
-                    .get('/users')
-                    .expect(200)
-                    .expect((res) => {
-                        if (res.body.users.length !== 3) {
-                            throw new Error('User not deleted');
-                        }
-                    })
-                    .expect((res) => {
-                        if (res.body.users.find((user) => user.username === 'user3')) {
-                            throw new Error('user3 was not deleted');
-                        }
-                    })
-                    .end(done);
-            });
+        const res = await request(app).get('/users');
+        expect(res.status).toBe(200);
+        expect(res.body.users.length).toBe(users.length);
+        expect(res.body.users.find((user) => user.username === 'user3')).toBe(undefined);
     });
 
-    it("Removes user3 from any user0's friends list after deletion", () => {
+    it("Removes user1Friend from any user1's friends list after deletion", () => {
         return request(app)
-            .get('/users/65218a70437ced46f36858d8')
+            .get(`/users/${users[1]}`)
             .expect(200)
             .then((res) => {
                 expect(res.body.friends).toEqual([]);
