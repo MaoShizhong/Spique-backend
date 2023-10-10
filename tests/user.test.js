@@ -295,19 +295,42 @@ describe('DELETE /users', () => {
         const res = await request(app).get('/users');
         expect(res.status).toBe(200);
         expect(res.body.users.length).toBe(users.length);
-        expect(res.body.users.find((user) => user.username === 'user3')).toBe(undefined);
+        expect(res.body.users.find((user) => user.username === 'user1Friend')).toBe(undefined);
     });
 
-    it("Removes user1Friend from any user1's friends list after deletion", () => {
+    it("Removes user1Friend from user1's friends list after deletion", () => {
         return request(app)
-            .get(`/users/${users[1]}`)
+            .get(`/users/${users[1]}/friends`)
             .expect(200)
             .then((res) => {
-                expect(res.body.friends).toEqual([]);
+                expect(res.body).toEqual([]);
             });
     });
 
     it('Returns 404 upon an attempt to delete a non-existant user', (done) => {
         request(app).delete('/users/62218a22128de91a680ba11b').expect(404, done);
+    });
+
+    it('Returns 400 upon an attempt to delete an invalid ObjectId pattern query', (done) => {
+        request(app).delete('/users/foobar').expect(400, done);
+    });
+
+    it('Removes user0 and user2 as friends when user2 deletes friendship status', async () => {
+        const putRes = await request(app).delete(`/users/${users[2]}/friends?userID=${users[0]}`);
+        expect(putRes.status).toEqual(200);
+
+        const user0Res = await request(app).get(`/users/${users[0]}/friends`);
+        expect(user0Res.status).toEqual(200);
+        expect(user0Res.body).toEqual([]);
+
+        const user2Res = await request(app).get(`/users/${users[2]}/friends`);
+        expect(user2Res.status).toEqual(200);
+        expect(user2Res.body).toEqual([]);
+    });
+
+    it('Returns 404 upon an attempt to remove a friend who is not a friend', (done) => {
+        request(app)
+            .delete(`/users/${users[2]}/friends?userID=62218a22128de91a680ba11b`)
+            .expect(404, done);
     });
 });
