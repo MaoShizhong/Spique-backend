@@ -1,34 +1,20 @@
 const { Router } = require('express');
-const asyncHandler = require('express-async-handler');
-const { ObjectId } = require('mongoose').Types;
-const User = require('../models/User');
+const { getAllUsers, getSpecificUser, getFriendsList } = require('../controllers/user/user_GET');
+const { validateNewUserForm, addNewUser } = require('../controllers/user/user_POST');
+const { handleFriendRequest } = require('../controllers/user/user_PUT');
+const { deleteUser, removeFriend } = require('../controllers/user/user_DELETE');
 
 const userRouter = Router();
 
-userRouter.get(
-    '/',
-    asyncHandler(async (req, res) => {
-        const users = await User.find().exec();
+userRouter.get('/', getAllUsers);
+userRouter.get('/:userID', getSpecificUser);
+userRouter.get('/:userID/friends', getFriendsList);
 
-        res.json({ count: users.length });
-    })
-);
+userRouter.post('/', validateNewUserForm, addNewUser);
 
-userRouter.get(
-    '/:userID',
-    asyncHandler(async (req, res) => {
-        if (!ObjectId.isValid(req.params.userID)) {
-            return res.status(400).json({ error: 'Invalid ObjectID pattern' });
-        }
+userRouter.put('/:userID/friends', handleFriendRequest);
 
-        const user0 = await User.findById(req.params.userID, 'username -_id').exec();
-
-        if (!user0) {
-            res.status(404).json({ error: 'User not found' });
-        } else {
-            res.json(user0);
-        }
-    })
-);
+userRouter.delete('/:userID', deleteUser);
+userRouter.delete('/:userID/friends', removeFriend);
 
 module.exports = userRouter;

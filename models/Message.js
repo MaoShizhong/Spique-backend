@@ -10,4 +10,4 @@ const MessageSchema = new Schema(
     { versionKey: false }
 );
 
-module.exports = model('Message', MessageSchema);
+module.exports = model('message', MessageSchema);

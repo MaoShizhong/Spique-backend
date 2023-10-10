@@ -1,8 +1,12 @@
 const { model, Schema } = require('mongoose');
 
-const FriendSchema = new Schema({
-    status: { type: String, enum: ['requested', 'incoming', 'accepted'], required: true },
-});
+const FriendSchema = new Schema(
+    {
+        user: { type: Schema.Types.ObjectId, ref: 'user', required: true },
+        status: { type: String, enum: ['requested', 'incoming', 'accepted'], required: true },
+    },
+    { _id: false }
+);
 
 const UserSchema = new Schema(
     {
@@ -14,4 +18,4 @@ const UserSchema = new Schema(
     { versionKey: false }
 );
 
-module.exports = model('User', UserSchema);
+module.exports = model('user', UserSchema);

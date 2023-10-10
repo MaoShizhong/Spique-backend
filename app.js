@@ -39,9 +39,9 @@ app.use(
     })
 );
 
-import { router } from './src/routes/router';
+const userRouter = require('./routes/user_router');
 
-app.use('/', router);
+app.use('/users', userRouter);
 
 /*
     - Listen

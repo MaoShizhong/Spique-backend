@@ -8,4 +8,4 @@ const ChannelSchema = new Schema(
     { versionKey: false }
 );
 
-module.exports = model('Channel', ChannelSchema);
+module.exports = model('channel', ChannelSchema);
