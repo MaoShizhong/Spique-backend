@@ -7,8 +7,10 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use('/users', userRouter);
 
-const { userIDs } = require('./config/test_documents').IDs;
+const { userIDs, channelUserIDs } = require('./config/test_IDs');
+
 const users = userIDs.map((objectId) => objectId.valueOf());
+const STARTING_USER_COUNT = users.length + channelUserIDs.length;
 
 describe('GET /users', () => {
     test(`In-memory database has ${users.length} test users loaded on test start`, (done) => {
@@ -16,7 +18,7 @@ describe('GET /users', () => {
             .get('/users')
             .expect('Content-Type', /json/)
             .expect((res) => {
-                if (res.body.users.length !== users.length)
+                if (res.body.users.length !== STARTING_USER_COUNT)
                     throw new Error('In-memory DB did not start with 4 users');
             })
             .expect(200, done);
@@ -49,7 +51,7 @@ describe('GET /users', () => {
             .expect('Content-Type', /json/)
             .expect(200)
             .then((res) => {
-                expect(res.body.user).toEqual({
+                expect(res.body).toEqual({
                     _id: users[0],
                     username: 'user0',
                     friends: [],
@@ -99,7 +101,7 @@ describe('POST /users', () => {
                     .get('/users')
                     .expect(200)
                     .expect((res) => {
-                        if (res.body.users.length !== users.length + 1) {
+                        if (res.body.users.length !== STARTING_USER_COUNT + 1) {
                             throw new Error('User was not added');
                         }
                     })
@@ -126,7 +128,7 @@ describe('POST /users', () => {
                 request(app)
                     .get('/users')
                     .expect((res) => {
-                        if (res.body.users.length !== users.length + 1) {
+                        if (res.body.users.length !== STARTING_USER_COUNT + 1) {
                             throw new Error('User incorrectly added');
                         }
                     })
@@ -149,7 +151,7 @@ describe('POST /users', () => {
                 request(app)
                     .get('/users')
                     .expect((res) => {
-                        if (res.body.users.length !== users.length + 1) {
+                        if (res.body.users.length !== STARTING_USER_COUNT + 1) {
                             throw new Error('User incorrectly added');
                         }
                     })
@@ -159,9 +161,6 @@ describe('POST /users', () => {
 });
 
 describe('PUT /users', () => {
-    const { userIDs } = require('./config/test_documents').IDs;
-    const users = userIDs.map((objectId) => objectId.valueOf());
-
     it("Stores user2 as pending friend in user0's friends list upon friend request", async () => {
         const putRes = await request(app).put(
             `/users/${users[0]}/friends?action=add&userID=${users[2]}`
@@ -294,7 +293,7 @@ describe('DELETE /users', () => {
 
         const res = await request(app).get('/users');
         expect(res.status).toBe(200);
-        expect(res.body.users.length).toBe(users.length);
+        expect(res.body.users.length).toBe(STARTING_USER_COUNT);
         expect(res.body.users.find((user) => user.username === 'user1Friend')).toBe(undefined);
     });
 

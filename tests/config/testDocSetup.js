@@ -1,4 +1,6 @@
-const { users, messages, channels } = require('./test_documents');
+const { users, channelUsers } = require('./test_users');
+const { messages } = require('./test_messages');
+const { channels } = require('./test_channels');
 const User = require('../../models/User');
 const Message = require('../../models/Message');
 const Channel = require('../../models/Channel');
@@ -23,7 +25,10 @@ beforeAll(async () => {
         console.log(`MongoDB successfully connected to ${mongoUri}`);
     });
 
-    const Users = users.map((user) => new User(user));
+    const Users = [
+        ...users.map((user) => new User(user)),
+        ...channelUsers.map((user) => new User(user)),
+    ];
     const Messages = messages.map((message) => new Message(message));
     const Channels = channels.map((channel) => new Channel(channel));
 
