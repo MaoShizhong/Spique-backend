@@ -14,19 +14,12 @@ exports.getSpecificUser = asyncHandler(async (req, res) => {
         return res.status(400).end();
     }
 
-    /*
-        ! When auth is implemented, only include channel data is user
-        ! is requesting their own information
-    */
-    const [user, channels] = await Promise.all([
-        User.findById(req.params.userID, '-password -email').exec(),
-        Channel.find({ participants: req.params.userID }).exec(),
-    ]);
+    const user = await User.findById(req.params.userID, '-password -email').exec();
 
     if (!user) {
         res.status(404).end();
     } else {
-        res.json({ user, channels });
+        res.json(user);
     }
 });
 
@@ -44,4 +37,17 @@ exports.getFriendsList = asyncHandler(async (req, res) => {
     } else {
         res.json(friendsList.friends);
     }
+});
+
+exports.getChannelList = asyncHandler(async (req, res) => {
+    if (!ObjectId.isValid(req.params.userID)) {
+        return res.status(400).end();
+    }
+
+    const channelList = await Channel.find({ participants: req.params.userID })
+        .populate({ path: 'participants', select: 'username -_id' })
+        .exec();
+
+    // channelList will always be an array - empty if no matches found
+    res.json(channelList);
 });

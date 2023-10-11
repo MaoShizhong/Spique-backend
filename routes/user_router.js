@@ -1,5 +1,10 @@
 const { Router } = require('express');
-const { getAllUsers, getSpecificUser, getFriendsList } = require('../controllers/user/user_GET');
+const {
+    getAllUsers,
+    getSpecificUser,
+    getFriendsList,
+    getChannelList,
+} = require('../controllers/user/user_GET');
 const { validateNewUserForm, addNewUser } = require('../controllers/user/user_POST');
 const { handleFriendRequest } = require('../controllers/user/user_PUT');
 const { deleteUser, removeFriend } = require('../controllers/user/user_DELETE');
@@ -9,6 +14,7 @@ const userRouter = Router();
 userRouter.get('/', getAllUsers);
 userRouter.get('/:userID', getSpecificUser);
 userRouter.get('/:userID/friends', getFriendsList);
+userRouter.get('/:userID/channels', getChannelList);
 
 userRouter.post('/', validateNewUserForm, addNewUser);
 
