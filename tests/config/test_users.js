@@ -56,4 +56,11 @@ exports.channelUsers = [
         password: 'asdfASDF2',
         friends: [{ user: channelUserIDs[0], status: 'accepted' }],
     },
+    {
+        _id: channelUserIDs[3],
+        username: 'channelUser3',
+        email: 'channelUser3@test.com',
+        password: 'asdfASDF3',
+        friends: [],
+    },
 ];

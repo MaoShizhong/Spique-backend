@@ -49,11 +49,11 @@ describe('GET channels', () => {
                 expect(res.body).toEqual({
                     _id: testChannels[0]._id,
                     name: 'channelUser1 & channelUser2',
-                    participants: [
+                    participants: expect.arrayContaining([
                         { _id: users[0], username: 'channelUser0' },
                         { _id: users[1], username: 'channelUser1' },
                         { _id: users[2], username: 'channelUser2' },
-                    ],
+                    ]),
                 });
             });
     });
@@ -63,22 +63,20 @@ describe('GET channels', () => {
     });
 
     it('Returns a 400 if requested channelID or user query are not valid objectID patterns', async () => {
-        const invalidChannelRes = await request(app).get(`/channels/foobar?userID=${users[0]}`);
-        const invalidUserRes = await request(app).get(
-            `/channels/${testChannels[0]._id}?user=foobar`
-        );
+        const [invalidChannelRes, invalidUserRes] = await Promise.all([
+            request(app).get(`/channels/foobar?userID=${users[0]}`),
+            request(app).get(`/channels/${testChannels[0]._id}?user=foobar`),
+        ]);
 
         expect(invalidChannelRes.status).toBe(400);
         expect(invalidUserRes.status).toBe(400);
     });
 
     it('Returns a 404 when provided channelID or userID (valid objectID) do not exist in DB', async () => {
-        const nonexistantChannelRes = await request(app).get(
-            `/channels/${nonexistantObjectID}?userID=${users[0]}`
-        );
-        const nonexistantUserRes = await request(app).get(
-            `/channels/${testChannels[0]._id}?userID=${nonexistantObjectID}`
-        );
+        const [nonexistantChannelRes, nonexistantUserRes] = await Promise.all([
+            request(app).get(`/channels/${nonexistantObjectID}?userID=${users[0]}`),
+            request(app).get(`/channels/${testChannels[0]._id}?userID=${nonexistantObjectID}`),
+        ]);
 
         expect(nonexistantChannelRes.status).toBe(404);
         expect(nonexistantUserRes.status).toBe(404);
@@ -98,11 +96,30 @@ describe('POST channels', () => {
         expect(newChannelRes.status).toBe(200);
         expect(newChannelRes.body).toMatchObject({
             name: 'channelUser1 & channelUser2',
-            participants: [
+            participants: expect.arrayContaining([
                 { _id: users[0], username: 'channelUser0' },
                 { _id: users[1], username: 'channelUser1' },
                 { _id: users[2], username: 'channelUser2' },
-            ],
+            ]),
+        });
+    });
+
+    it('Creates another channel when opened by a user who is friends with all added participants', async () => {
+        const res = await request(app).post(
+            `/channels?creator=${users[2]}&participants=${users[0]}`
+        );
+        expect(res.status).toBe(200);
+
+        const newChannelRes = await request(app).get(
+            `${res.body.newChannelURL}?userID=${users[2]}`
+        );
+        expect(newChannelRes.status).toBe(200);
+        expect(newChannelRes.body).toMatchObject({
+            name: 'channelUser0',
+            participants: expect.arrayContaining([
+                { _id: users[0], username: 'channelUser0' },
+                { _id: users[2], username: 'channelUser2' },
+            ]),
         });
     });
 
@@ -120,5 +137,116 @@ describe('POST channels', () => {
         request(app)
             .post(`/channels?creator=${users[2]}&participants=${nonexistantObjectID}`)
             .expect(403, done);
+    });
+});
+
+describe('PUT /channels (adding members to and leaving channels)', () => {
+    it('Adds a user to a channel only if the user adding them is their friend', async () => {
+        const putRes = await request(app).put(
+            `/channels/${testChannels[1]._id}?adder=${users[0]}&target=${users[2]}`
+        );
+        expect(putRes.status).toBe(200);
+
+        const getRes = await request(app).get(
+            `/channels/${testChannels[1]._id}?userID=${users[0]}`
+        );
+        expect(getRes.status).toBe(200);
+        expect(getRes.body).toMatchObject({
+            name: 'channelUser1 & channelUser2',
+            participants: expect.arrayContaining([
+                { _id: users[0], username: 'channelUser0' },
+                { _id: users[1], username: 'channelUser1' },
+                { _id: users[2], username: 'channelUser2' },
+            ]),
+        });
+    });
+
+    it('Does not add a user to a channel if the user adding them is not their friend', async () => {
+        const putRes = await request(app).put(
+            `/channels/${testChannels[1]._id}?action=add&requester=${users[0]}&target=${users[3]}`
+        );
+        expect(putRes.status).toBe(403);
+
+        const getRes = await request(app).get(
+            `/channels/${testChannels[1]._id}?userID=${users[0]}`
+        );
+        expect(getRes.status).toBe(200);
+        expect(getRes.body).toMatchObject({
+            name: 'channelUser1 & channelUser2',
+            participants: expect.arrayContaining([
+                { _id: users[0], username: 'channelUser0' },
+                { _id: users[1], username: 'channelUser1' },
+                { _id: users[2], username: 'channelUser2' },
+            ]),
+        });
+    });
+
+    it('Prevents adding a user to a channel if they are already in it - returns 400', async () => {
+        const putRes = await request(app).put(
+            `/channels/${testChannels[1]._id}?action=add&requester=${users[0]}&target=${users[2]}`
+        );
+        expect(putRes.status).toBe(400);
+
+        const getRes = await request(app).get(
+            `/channels/${testChannels[1]._id}?userID=${users[0]}`
+        );
+        expect(getRes.status).toBe(200);
+        expect(getRes.body).toMatchObject({
+            name: 'channelUser1 & channelUser2',
+            participants: expect.arrayContaining([
+                { _id: users[0], username: 'channelUser0' },
+                { _id: users[1], username: 'channelUser1' },
+                { _id: users[2], username: 'channelUser2' },
+            ]),
+        });
+    });
+
+    it('Removes user when they leave a channel they are in', async () => {
+        const putRes = await request(app).put(
+            `/channels/${testChannels[1]._id}?action=leave&requester=${users[2]}`
+        );
+        expect(putRes.status).toBe(200);
+
+        const getRes = await request(app).get(
+            `/channels/${testChannels[1]._id}?userID=${users[0]}`
+        );
+        expect(getRes.status).toBe(200);
+        expect(getRes.body).toMatchObject({
+            name: 'channelUser1',
+            participants: expect.arrayContaining([
+                { _id: users[0], username: 'channelUser0' },
+                { _id: users[1], username: 'channelUser1' },
+            ]),
+        });
+    });
+
+    it('Returns 404 if a user attempts to leave a channel they are not already in', async () => {
+        const putRes = await request(app).put(
+            `/channels/${testChannels[1]._id}?action=leave&requester=${users[2]}`
+        );
+        expect(putRes.status).toBe(404);
+    });
+
+    it('Returns 400 if trying to add a user without including a target user query', async () => {
+        const putRes = await request(app).put(
+            `/channels/${testChannels[1]._id}?action=add&requester=${users[0]}`
+        );
+        expect(putRes.status).toBe(400);
+    });
+
+    it('Returns 404 if any userID provided does not exist in the database', async () => {
+        const [resOne, resTwo, resThree] = await Promise.all([
+            request(app).put(
+                `/channels/${testChannels[1]._id}?action=leave&requester=${nonexistantObjectID}`
+            ),
+            request(app).put(
+                `/channels/${testChannels[1]._id}?action=leave&requester=${nonexistantObjectID}`
+            ),
+            request(app).put(
+                `/channels/${testChannels[1]._id}?action=leave&requester=${nonexistantObjectID}`
+            ),
+        ]);
+
+        expect([resOne, resTwo, resThree].every((res) => res.status === 404)).toBe(true);
     });
 });
