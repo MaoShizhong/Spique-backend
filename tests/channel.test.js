@@ -86,29 +86,39 @@ describe('GET channels', () => {
 });
 
 describe('POST channels', () => {
-    it('Creates a channel when opened between two friends (then opened by channelUser0)', async () => {
+    it('Creates a channel when opened by a user who is friends with all added participants', async () => {
         const res = await request(app).post(
-            `/channels?participants=${users[0]}&participants=${users[1]}`
+            `/channels?creator=${users[0]}&participants=${users[1]},${users[2]}`
         );
         expect(res.status).toBe(200);
-        const { url } = await res.json();
 
-        const newChannelRes = await request(app).get(`/channels/${url}?userID=${users[0]}`);
+        const newChannelRes = await request(app).get(
+            `${res.body.newChannelURL}?userID=${users[0]}`
+        );
         expect(newChannelRes.status).toBe(200);
         expect(newChannelRes.body).toMatchObject({
-            name: 'channelUser1',
+            name: 'channelUser1 & channelUser2',
             participants: [
                 { _id: users[0], username: 'channelUser0' },
                 { _id: users[1], username: 'channelUser1' },
+                { _id: users[2], username: 'channelUser2' },
             ],
         });
     });
 
     it('Does not create a channel if two users are not friends', (done) => {
         request(app)
-            .post(`/channels?participants=${users[2]}&participants=${users[1]}`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
+            .post(`/channels?creator=${users[2]}&participants=${users[1]}`)
             .expect(403, done);
+    });
+
+    it('Does not create a channel if any of the provided user ObjectIDs are invalid ObjectIDs', (done) => {
+        request(app).post(`/channels?creator=foobar&participants=${users[1]}`).expect(400, done);
+    });
+
+    it('Does not create a channel if any of the provided user _ids do not exist in the database', (done) => {
+        request(app)
+            .post(`/channels?creator=${users[2]}&participants=${nonexistantObjectID}`)
+            .expect(404, done);
     });
 });
