@@ -119,6 +119,6 @@ describe('POST channels', () => {
     it('Does not create a channel if any of the provided user _ids do not exist in the database', (done) => {
         request(app)
             .post(`/channels?creator=${users[2]}&participants=${nonexistantObjectID}`)
-            .expect(404, done);
+            .expect(403, done);
     });
 });

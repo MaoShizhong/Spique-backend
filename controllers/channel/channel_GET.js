@@ -2,7 +2,7 @@ const asyncHandler = require('express-async-handler');
 const { ObjectId } = require('mongoose').Types;
 const User = require('../../models/User');
 const Channel = require('../../models/Channel');
-const { generateChannelName } = require('../../helpers/channel_name');
+const { generateChannelName } = require('../../helpers/channels');
 
 exports.getChannel = asyncHandler(async (req, res) => {
     if (
