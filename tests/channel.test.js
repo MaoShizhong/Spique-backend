@@ -143,7 +143,7 @@ describe('POST channels', () => {
 describe('PUT /channels (adding members to and leaving channels)', () => {
     it('Adds a user to a channel only if the user adding them is their friend', async () => {
         const putRes = await request(app).put(
-            `/channels/${testChannels[1]._id}?adder=${users[0]}&target=${users[2]}`
+            `/channels/${testChannels[1]._id}?action=add&requester=${users[0]}&target=${users[2]}`
         );
         expect(putRes.status).toBe(200);
 
@@ -237,10 +237,10 @@ describe('PUT /channels (adding members to and leaving channels)', () => {
     it('Returns 404 if any userID provided does not exist in the database', async () => {
         const [resOne, resTwo, resThree] = await Promise.all([
             request(app).put(
-                `/channels/${testChannels[1]._id}?action=leave&requester=${nonexistantObjectID}`
+                `/channels/${testChannels[1]._id}?action=add&requester=${nonexistantObjectID}&target=${users[0]}`
             ),
             request(app).put(
-                `/channels/${testChannels[1]._id}?action=leave&requester=${nonexistantObjectID}`
+                `/channels/${testChannels[1]._id}?action=add&requester=${users[0]}&target=${nonexistantObjectID}`
             ),
             request(app).put(
                 `/channels/${testChannels[1]._id}?action=leave&requester=${nonexistantObjectID}`
