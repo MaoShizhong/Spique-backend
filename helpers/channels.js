@@ -68,18 +68,20 @@ exports.leaveChannel = async (channelID, requesterID) => {
         ]);
 
         if (!channel || !requester) {
-            return 404;
+            return [404];
         }
 
         const participants = channel.participants.map((participant) => participant.valueOf());
-        if (!participants.includes(requesterID)) return 404;
+        if (!participants.includes(requesterID)) return [404];
 
         const indexOfRequester = participants.indexOf(requesterID);
         channel.participants.splice(indexOfRequester, 1);
         await channel.save();
 
-        return 200;
+        const shouldDeleteChannel = channel.participants.length === 0;
+
+        return [200, shouldDeleteChannel];
     } catch (error) {
-        return 500;
+        return [500];
     }
 };

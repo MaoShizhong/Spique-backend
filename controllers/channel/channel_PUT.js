@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const { ObjectId } = require('mongoose').Types;
 const { addUserToChannel, leaveChannel } = require('../../helpers/channels');
+const Channel = require('../../models/Channel');
 
 exports.handleChannelEdit = asyncHandler(async (req, res) => {
     // - Error handling
@@ -23,13 +24,17 @@ exports.handleChannelEdit = asyncHandler(async (req, res) => {
 
     if (objectIds.some((id) => !ObjectId.isValid(id))) return res.status(400).end();
 
-    // - Take action if no 400 errors
-    let status = 400;
-
+    // - Take action if no 400 errors from above
+    // Default status is 400 in case action is somehow not add/leave
+    let [status, shouldDeleteChannel] = [400, false];
     if (action === 'add') {
         status = await addUserToChannel(channelID, requester, target);
     } else if (action === 'leave') {
-        status = await leaveChannel(channelID, requester);
+        [status, shouldDeleteChannel] = await leaveChannel(channelID, requester);
+    }
+
+    if (shouldDeleteChannel) {
+        await Channel.deleteOne({ _id: channelID });
     }
 
     res.status(status).end();

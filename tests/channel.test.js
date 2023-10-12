@@ -249,4 +249,21 @@ describe('PUT /channels (adding members to and leaving channels)', () => {
 
         expect([resOne, resTwo, resThree].every((res) => res.status === 404)).toBe(true);
     });
+
+    it('Deletes channel when the last participant leaves', async () => {
+        const firstLeaveRes = await request(app).put(
+            `/channels/${testChannels[1]._id}?action=leave&requester=${users[1]}`
+        );
+        expect(firstLeaveRes.status).toBe(200);
+
+        const secondLeaveRes = await request(app).put(
+            `/channels/${testChannels[1]._id}?action=leave&requester=${users[0]}`
+        );
+        expect(secondLeaveRes.status).toBe(200);
+
+        const getRes = await request(app).get(
+            `/channels/${testChannels[1]._id}?userID=${users[0]}`
+        );
+        expect(getRes.status).toBe(404);
+    });
 });
