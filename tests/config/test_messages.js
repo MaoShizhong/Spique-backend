@@ -1,4 +1,5 @@
 const { userIDs, messageIDs, channelIDs } = require('./test_IDs');
+const { ObjectId } = require('mongoose').Types;
 
 exports.messages = [
     {
@@ -22,25 +23,21 @@ exports.messages = [
         timestamp: new Date('2023-10-07T05:24:00'),
         text: 'user1->user0 message2',
     },
-    {
-        _id: messageIDs[3],
-        user: userIDs[2],
-        channel: channelIDs[1],
-        timestamp: new Date('2023-10-07T05:24:00'),
-        text: 'user2->group message0',
-    },
-    {
-        _id: messageIDs[4],
-        user: userIDs[1],
-        channel: channelIDs[1],
-        timestamp: new Date('2023-10-07T05:24:00'),
-        text: 'user1->group message1',
-    },
-    {
-        _id: messageIDs[5],
-        user: userIDs[2],
-        channel: channelIDs[1],
-        timestamp: new Date('2023-10-07T05:24:00'),
-        text: 'user2->group message2',
-    },
+    ...generateManyTestMessages(80, channelIDs[1], userIDs[2]),
 ];
+
+function generateManyTestMessages(quantity, channelID, userID) {
+    const messages = [];
+
+    for (let i = 1; i <= quantity; i++) {
+        messages.push({
+            _id: new ObjectId(),
+            user: userID,
+            channel: channelID,
+            timestamp: new Date(Date.now() + i * 10000), // hard prevent same timestamp (lower text value is earlier message)
+            text: i.toString(),
+        });
+    }
+
+    return messages;
+}

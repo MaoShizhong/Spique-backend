@@ -24,5 +24,6 @@ module.exports = {
     channelIDs: [
         new ObjectId('65218cd0a863d7b4539518eb'),
         new ObjectId('65218cdb106a96279ad1a482'),
+        new ObjectId('652885c4896809b28f626451'),
     ],
 };
