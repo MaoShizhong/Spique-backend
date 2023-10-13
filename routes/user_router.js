@@ -4,10 +4,12 @@ const {
     getSpecificUser,
     getFriendsList,
     getChannelList,
-} = require('../controllers/user/user_GET');
-const { validateNewUserForm, addNewUser } = require('../controllers/user/user_POST');
-const { handleFriendRequest } = require('../controllers/user/user_PUT');
-const { deleteUser, removeFriend } = require('../controllers/user/user_DELETE');
+    validateNewUserForm,
+    addNewUser,
+    handleFriendRequest,
+    deleteUser,
+    removeFriend,
+} = require('../controllers/user/user');
 
 const userRouter = Router();
 

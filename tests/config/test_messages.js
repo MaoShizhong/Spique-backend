@@ -23,7 +23,7 @@ exports.messages = [
         timestamp: new Date('2023-10-07T05:24:00'),
         text: 'user1->user0 message2',
     },
-    ...generateManyTestMessages(80, channelIDs[1], userIDs[2]),
+    ...generateManyTestMessages(90, channelIDs[1], userIDs[2]),
 ];
 
 function generateManyTestMessages(quantity, channelID, userID) {
