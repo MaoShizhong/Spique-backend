@@ -6,6 +6,7 @@ const MessageSchema = new Schema(
         channel: { type: Schema.Types.ObjectId, ref: 'channel', required: true },
         timestamp: { type: Date, required: true },
         text: { type: String, required: true },
+        edited: Boolean,
     },
     { versionKey: false }
 );

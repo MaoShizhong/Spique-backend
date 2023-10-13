@@ -7,6 +7,7 @@ const {
 const {
     getChannelMessages,
     sendNewMessage,
+    validateMessageForm,
     editMessage,
     deleteMessage,
 } = require('../controllers/message/message');
@@ -17,10 +18,10 @@ channelRouter.get('/:channelID', getChannel);
 channelRouter.get('/:channelID/messages', getChannelMessages);
 
 channelRouter.post('/', createNewChannel);
-channelRouter.post('/:channelID/messages', sendNewMessage);
+channelRouter.post('/:channelID/messages', validateMessageForm, sendNewMessage);
 
 channelRouter.put('/:channelID', handleChannelEdit);
-channelRouter.put('/:channelID/messages/:messageID', editMessage);
+channelRouter.put('/:channelID/messages/:messageID', validateMessageForm, editMessage);
 
 channelRouter.delete('/:channelID/messages/:messageID', deleteMessage);
 
