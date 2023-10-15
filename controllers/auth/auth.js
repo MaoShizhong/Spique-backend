@@ -1,5 +1,5 @@
-const { body, validationResult } = require('express-validator');
 const asyncHandler = require('express-async-handler');
+const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
 const User = require('../../models/User');
 
@@ -56,3 +56,24 @@ exports.addNewUser = asyncHandler(async (req, res) => {
         }
     });
 });
+
+exports.login = (req, res) => {
+    res.status(201).json({ _id: req.user._id, username: req.user.username });
+};
+
+exports.logout = (req, res, next) => {
+    req.logout((err) => {
+        req.session.destroy();
+        res.clearCookie('connect.sid');
+
+        if (err) next(err);
+        else res.end();
+    });
+};
+
+exports.checkAuthenticated = (req, res, next) => {
+    console.log(req.user);
+
+    if (req.isAuthenticated()) next();
+    else res.status(401).end();
+};

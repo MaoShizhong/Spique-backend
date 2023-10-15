@@ -1,11 +1,13 @@
 const request = require('supertest');
-const userRouter = require('../routes/user_router');
 const express = require('express');
+const userRouter = require('../routes/user_router');
+const authRouter = require('../routes/auth_router');
 
 const app = express();
 
 app.use(express.urlencoded({ extended: false }));
 app.use('/users', userRouter);
+app.use('/auth', authRouter);
 
 const { userIDs, channelUserIDs } = require('./config/test_IDs');
 
@@ -87,7 +89,7 @@ describe('GET /users', () => {
 describe('POST /users', () => {
     it('Adds a fourth user to the test database if all form fields pass validation', () => {
         return request(app)
-            .post('/users')
+            .post('/auth/users')
             .type('form')
             .send({
                 username: 'user3',
@@ -115,7 +117,7 @@ describe('POST /users', () => {
 
     it('Rejects new user submission if password does not match constraints', (done) => {
         request(app)
-            .post('/users')
+            .post('/auth/users')
             .type('form')
             .send({
                 username: 'user4',
@@ -138,7 +140,7 @@ describe('POST /users', () => {
 
     it('Rejects new user submission if password fields do not match', (done) => {
         request(app)
-            .post('/users')
+            .post('/auth/users')
             .type('form')
             .send({
                 username: 'user4',

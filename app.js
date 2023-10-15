@@ -1,15 +1,18 @@
-const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const express = require('express');
-const mongoose = require('mongoose');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const MongoStore = require('connect-mongo');
 const logger = require('morgan');
 require('dotenv').config();
 
 const app = express();
 
 /*
-    - Mongoose setup
+- Mongoose setup
 */
+const mongoose = require('mongoose');
+
 mongoose.set('strictQuery', false);
 
 async function connectToDatabase() {
@@ -25,6 +28,18 @@ try {
 }
 
 /*
+    - Initialise passport
+*/
+const passport = require('passport');
+const LocalStrategy = require('./passport/strategies');
+const { serialize, deserialize } = require('./passport/serialize');
+
+passport.use(LocalStrategy);
+
+passport.serializeUser(serialize);
+passport.deserializeUser(deserialize);
+
+/*
     - Initialise middleware
 */
 app.use(logger('dev'));
@@ -32,16 +47,37 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(
+    session({
+        secret: process.env.SESSION_SECRET,
+        resave: false,
+        saveUninitialized: true,
+        store: MongoStore.create({ client: mongoose.connection.getClient() }),
+        cookie: {
+            secure: process.env.MODE === 'prod',
+            maxAge: 10 * 60 * 1000,
+            httpOnly: process.env.MODE === 'prod',
+        },
+    })
+);
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(
     cors({
-        origin: ['https://spique.netlify.app', 'http://localhost:5173'],
+        origin: process.env.ALLOWED_ORIGINS.split(','),
         credentials: true,
-        exposedHeaders: 'Authorization',
     })
 );
 
+/*
+    - Initialise routers
+*/
+const authRouter = require('./routes/auth_router');
 const userRouter = require('./routes/user_router');
+const channelRouter = require('./routes/channel_router');
 
+app.use('/auth', authRouter);
 app.use('/users', userRouter);
+app.use('/channels', channelRouter);
 
 /*
     - Listen
