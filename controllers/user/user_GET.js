@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const { ObjectId } = require('mongoose').Types;
 const User = require('../../models/User');
 const Channel = require('../../models/Channel');
+const { generateChannelName } = require('../../helpers/channels');
 
 exports.getAllUsers = asyncHandler(async (req, res) => {
     const users = await User.find({}, 'username').exec();
@@ -40,14 +41,26 @@ exports.getFriendsList = asyncHandler(async (req, res) => {
 });
 
 exports.getChannelList = asyncHandler(async (req, res) => {
-    if (!ObjectId.isValid(req.params.userID)) {
+    const userID = req.params.userID;
+
+    if (!ObjectId.isValid(userID)) {
         return res.status(400).end();
+    } else if (userID !== req.user._id) {
+        return res.status(401).end();
     }
 
-    const channelList = await Channel.find({ participants: req.params.userID })
+    const channelList = await Channel.find({ participants: userID })
         .populate({ path: 'participants', select: 'username -_id' })
         .exec();
 
+    const namedChannelList = channelList.map((channel) => {
+        if (!channel.name) {
+            channel.name = generateChannelName(channel.participants, req.user.username);
+        }
+
+        return channel;
+    });
+
     // channelList will always be an array - empty if no matches found
-    res.json(channelList);
+    res.json(namedChannelList);
 });

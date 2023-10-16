@@ -54,7 +54,7 @@ app.use(
         store: MongoStore.create({ client: mongoose.connection.getClient() }),
         cookie: {
             secure: process.env.MODE === 'prod',
-            maxAge: 10 * 60 * 1000,
+            maxAge: 2 * 24 * 60 * 60 * 1000, // 2 days (refreshed every successful request)
             httpOnly: process.env.MODE === 'prod',
         },
     })
