@@ -36,7 +36,11 @@ exports.getFriendsList = asyncHandler(async (req, res) => {
     if (!friendsList) {
         res.status(404).end();
     } else {
-        res.json(friendsList.friends);
+        const incoming = friendsList.friends.filter((friend) => friend.status === 'incoming');
+        const pending = friendsList.friends.filter((friend) => friend.status === 'pending');
+        const accepted = friendsList.friends.filter((friend) => friend.status === 'accepted');
+
+        res.json([...incoming, ...pending, ...accepted]);
     }
 });
 
