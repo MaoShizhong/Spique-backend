@@ -12,14 +12,14 @@ const { checkAuthenticated } = require('../controllers/auth/auth');
 
 const userRouter = Router();
 
-userRouter.get('/', getAllUsers);
-userRouter.get('/:userID', getSpecificUser);
-userRouter.get('/:userID/friends', getFriendsList);
+userRouter.get('/', checkAuthenticated, getAllUsers);
+userRouter.get('/:userID', checkAuthenticated, getSpecificUser);
+userRouter.get('/:userID/friends', checkAuthenticated, getFriendsList);
 userRouter.get('/:userID/channels', checkAuthenticated, getChannelList);
 
-userRouter.put('/:userID/friends', handleFriendRequest);
+userRouter.put('/:userID/friends', checkAuthenticated, handleFriendRequest);
 
-userRouter.delete('/:userID', deleteUser);
-userRouter.delete('/:userID/friends', removeFriend);
+userRouter.delete('/:userID', checkAuthenticated, deleteUser);
+userRouter.delete('/:userID/friends', checkAuthenticated, removeFriend);
 
 module.exports = userRouter;

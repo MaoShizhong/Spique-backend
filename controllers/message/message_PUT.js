@@ -11,11 +11,10 @@ exports.editMessage = asyncHandler(async (req, res) => {
         return res.status(400).json(errors.array());
     }
 
-    const user = req.query.userID;
     const messageID = req.params.messageID;
     const channelID = req.params.channelID;
 
-    if (!user || !ObjectId.isValid(messageID) || !ObjectId.isValid(channelID)) {
+    if (!ObjectId.isValid(messageID) || !ObjectId.isValid(channelID)) {
         return res.status(400).end();
     }
 
@@ -26,7 +25,7 @@ exports.editMessage = asyncHandler(async (req, res) => {
 
     if (!message || !channel || message.channel.valueOf() !== channel._id.valueOf()) {
         return res.status(404).end();
-    } else if (message.user.valueOf() !== user) {
+    } else if (message.user.valueOf() !== req.user._id) {
         return res.status(403).end();
     }
 
@@ -34,5 +33,5 @@ exports.editMessage = asyncHandler(async (req, res) => {
     message.edited = true;
     await message.save();
 
-    res.status(200).json(message);
+    res.json(message);
 });

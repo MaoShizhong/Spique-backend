@@ -7,14 +7,15 @@ exports.handleChannelEdit = asyncHandler(async (req, res) => {
     // - Error handling
     const [action, requester, target, channelID] = [
         req.query.action,
-        req.query.requester,
+        req.user._id,
         req.query.target,
         req.params.channelID,
     ];
 
-    if (!action || !requester) return res.status(400).end();
+    if (!action) return res.status(400).end();
 
-    const objectIds = [channelID, requester];
+    // Check valid objectID values - `target` only exists for 'add' actions
+    const objectIds = [channelID];
 
     if (action === 'add' && !target) {
         return res.status(400).end();

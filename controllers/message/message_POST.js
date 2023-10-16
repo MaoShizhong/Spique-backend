@@ -17,10 +17,8 @@ exports.sendNewMessage = asyncHandler(async (req, res) => {
         return res.status(400).json(errors.array());
     }
 
-    const userID = req.query.userID;
     const channelID = req.params.channelID;
-
-    if (!userID || !ObjectId.isValid(userID) || !ObjectId.isValid(channelID)) {
+    if (!ObjectId.isValid(channelID)) {
         return res.status(400).end();
     }
 
@@ -28,12 +26,12 @@ exports.sendNewMessage = asyncHandler(async (req, res) => {
 
     if (!channel) {
         return res.status(404).end();
-    } else if (!channel.participants.includes(userID)) {
+    } else if (!channel.participants.includes(req.user._id)) {
         return res.status(403).end();
     }
 
     const message = new Message({
-        user: new ObjectId(userID),
+        user: new ObjectId(req.user._id),
         channel: new ObjectId(channelID),
         timestamp: new Date(),
         text: req.body.text,

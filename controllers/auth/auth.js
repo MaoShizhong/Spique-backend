@@ -72,8 +72,6 @@ exports.logout = (req, res, next) => {
 };
 
 exports.checkAuthenticated = (req, res, next) => {
-    console.log(req.user);
-
     if (req.isAuthenticated()) next();
     else res.status(401).end();
 };
