@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const {
-    getAllUsers,
+    getUsers,
     getSpecificUser,
     getFriendsList,
     getChannelList,
@@ -12,7 +12,7 @@ const { checkAuthenticated } = require('../controllers/auth/auth');
 
 const userRouter = Router();
 
-userRouter.get('/', checkAuthenticated, getAllUsers);
+userRouter.get('/', checkAuthenticated, getUsers);
 userRouter.get('/:userID', checkAuthenticated, getSpecificUser);
 userRouter.get('/:userID/friends', checkAuthenticated, getFriendsList);
 userRouter.get('/:userID/channels', checkAuthenticated, getChannelList);

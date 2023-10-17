@@ -4,10 +4,15 @@ const User = require('../../models/User');
 const Channel = require('../../models/Channel');
 const { generateChannelName } = require('../../helpers/channels');
 
-exports.getAllUsers = asyncHandler(async (req, res) => {
-    const users = await User.find({}, 'username').exec();
+exports.getUsers = asyncHandler(async (req, res) => {
+    if (!req.query.search) return res.status(400).end();
 
-    res.json({ users });
+    const users = await User.find(
+        { _id: { $not: { $eq: req.user._id } }, username: { $regex: req.query.search } },
+        'username'
+    ).exec();
+
+    res.json(users);
 });
 
 exports.getSpecificUser = asyncHandler(async (req, res) => {
