@@ -34,18 +34,14 @@ exports.getFriendsList = asyncHandler(async (req, res) => {
         return res.status(400).end();
     }
 
-    const friendsList = await User.findById(req.params.userID, 'friends -_id')
+    const { friends } = await User.findById(req.params.userID, 'friends -_id')
         .populate({ path: 'friends.user', options: { projection: 'username' } })
         .exec();
 
-    if (!friendsList) {
+    if (!friends) {
         res.status(404).end();
     } else {
-        const incoming = friendsList.friends.filter((friend) => friend.status === 'incoming');
-        const pending = friendsList.friends.filter((friend) => friend.status === 'pending');
-        const accepted = friendsList.friends.filter((friend) => friend.status === 'accepted');
-
-        res.json([...incoming, ...pending, ...accepted]);
+        res.json(friends);
     }
 });
 

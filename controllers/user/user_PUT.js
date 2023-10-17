@@ -37,5 +37,7 @@ exports.handleFriendRequest = asyncHandler(async (req, res) => {
             return res.status(400).end();
     }
 
-    res.end();
+    await self.populate({ path: 'friends.user', options: { projection: 'username' } });
+
+    res.json(self.friends);
 });

@@ -28,17 +28,24 @@ exports.removeFriend = asyncHandler(async (req, res) => {
     }
 
     const [user, deletedFriend] = await Promise.all([
-        User.findByIdAndUpdate(req.params.userID, {
-            $pull: { friends: { user: req.query.userID } },
-        }).exec(),
+        User.findByIdAndUpdate(
+            req.params.userID,
+            {
+                $pull: { friends: { user: req.query.userID } },
+            },
+            { new: true }
+        ).exec(),
         User.findByIdAndUpdate(req.query.userID, {
             $pull: { friends: { user: req.params.userID } },
         }).exec(),
     ]);
 
+    console.log(user.friends);
+
     if (!user || !deletedFriend) {
         res.status(404).end();
     } else {
-        res.end();
+        await user.populate({ path: 'friends.user', options: { projection: 'username' } });
+        res.json(user.friends);
     }
 });
