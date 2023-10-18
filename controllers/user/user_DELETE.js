@@ -40,8 +40,6 @@ exports.removeFriend = asyncHandler(async (req, res) => {
         }).exec(),
     ]);
 
-    console.log(user.friends);
-
     if (!user || !deletedFriend) {
         res.status(404).end();
     } else {

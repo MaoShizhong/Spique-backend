@@ -31,7 +31,9 @@ exports.editMessage = asyncHandler(async (req, res) => {
 
     message.text = req.body.text;
     message.edited = true;
+
     await message.save();
+    await message.populate('user', 'username');
 
     res.json(message);
 });

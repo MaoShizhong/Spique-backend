@@ -15,11 +15,9 @@ exports.getChannelMessages = asyncHandler(async (req, res) => {
         .sort({ timestamp: -1 })
         .skip(MESSAGES_PER_PAGE * (page - 1))
         .limit(MESSAGES_PER_PAGE)
+        .select('-channel')
+        .populate('user', 'username')
         .exec();
 
-    if (!messages.length) {
-        res.status(404).end();
-    } else {
-        res.json(messages);
-    }
+    res.json(messages);
 });
