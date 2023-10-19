@@ -4,6 +4,8 @@ const ChannelSchema = new Schema(
     {
         name: { type: String, default: undefined },
         participants: [{ type: Schema.Types.ObjectId, ref: 'user' }],
+        created: { type: Date, required: true },
+        latestMessage: { type: Schema.Types.ObjectId, ref: 'message' },
     },
     { versionKey: false }
 );

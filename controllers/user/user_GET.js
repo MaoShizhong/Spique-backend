@@ -55,7 +55,13 @@ exports.getChannelList = asyncHandler(async (req, res) => {
     }
 
     const channelList = await Channel.find({ participants: userID })
-        .populate({ path: 'participants', select: 'username -_id' })
+        .populate('participants', 'username -_id')
+        .populate({
+            path: 'latestMessage',
+            select: 'user text timestamp -_id',
+            populate: { path: 'user', select: 'username -_id' },
+        })
+        .sort({ created: -1 })
         .exec();
 
     const namedChannelList = channelList.map((channel) => {

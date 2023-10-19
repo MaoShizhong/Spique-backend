@@ -37,7 +37,10 @@ exports.sendNewMessage = asyncHandler(async (req, res) => {
         text: req.body.text,
     });
 
-    await message.save();
+    // So channel previews can show a preview of the latest message
+    channel.latestMessage = message._id;
+
+    await Promise.all([message.save(), channel.save()]);
 
     res.status(201).json(message);
 });

@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const { ObjectId } = require('mongoose').Types;
 const Channel = require('../../models/Channel');
-const { checkFriendStatus } = require('../../helpers/channels');
+const { checkFriendStatus, generateChannelName } = require('../../helpers/channels');
 
 exports.createNewChannel = asyncHandler(async (req, res) => {
     if (!req.query.participants) {
@@ -18,7 +18,7 @@ exports.createNewChannel = asyncHandler(async (req, res) => {
     // Channel creator must be friends with all added participants
     // Participants do not need to be friends with all other participants
     // This also captures any non-existant users by nature of not being in the friends list
-    const isFriendsWithAllOthers = await checkFriendStatus(req.query._id, participants);
+    const isFriendsWithAllOthers = await checkFriendStatus(req.user._id, participants);
     if (!isFriendsWithAllOthers) {
         return res.status(403).end();
     }
@@ -29,6 +29,7 @@ exports.createNewChannel = asyncHandler(async (req, res) => {
     ];
     const newChannel = new Channel({
         participants: allParticipants,
+        created: new Date(),
     });
 
     const addedChannel = await newChannel.save();
@@ -36,6 +37,10 @@ exports.createNewChannel = asyncHandler(async (req, res) => {
     if (!addedChannel) {
         res.status(500).end();
     } else {
-        res.json({ newChannelURL: addedChannel.url });
+        await addedChannel.populate('participants', 'username -_id');
+        res.json({
+            url: addedChannel.url,
+            name: generateChannelName(addedChannel.participants, req.user.username),
+        });
     }
 });
