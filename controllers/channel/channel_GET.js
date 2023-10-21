@@ -11,9 +11,7 @@ exports.getChannel = asyncHandler(async (req, res) => {
 
     const [user, channel] = await Promise.all([
         User.findById(req.user._id).exec(),
-        Channel.findById(req.params.channelID)
-            .populate({ path: 'participants', select: 'username' })
-            .exec(),
+        Channel.findById(req.params.channelID).populate('participants', 'username').exec(),
     ]);
 
     if (!user || !channel) {

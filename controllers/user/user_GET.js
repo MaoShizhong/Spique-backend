@@ -8,7 +8,10 @@ exports.getUsers = asyncHandler(async (req, res) => {
     if (!req.query.search) return res.status(400).end();
 
     const users = await User.find(
-        { _id: { $not: { $eq: req.user._id } }, username: { $regex: req.query.search } },
+        {
+            _id: { $not: { $eq: req.user._id } },
+            username: { $regex: req.query.search, $options: 'i' },
+        },
         'username'
     ).exec();
 

@@ -11,13 +11,21 @@ exports.getChannelMessages = asyncHandler(async (req, res) => {
         return res.status(400).end();
     }
 
-    const messages = await Message.find({ channel: channelID })
-        .sort({ timestamp: -1 })
-        .skip(MESSAGES_PER_PAGE * (page - 1))
-        .limit(MESSAGES_PER_PAGE)
-        .select('-channel')
-        .populate('user', 'username')
-        .exec();
+    const [messages, messageCount] = await Promise.all([
+        Message.find({ channel: channelID })
+            .sort({ timestamp: -1 })
+            .skip(MESSAGES_PER_PAGE * (page - 1))
+            .limit(MESSAGES_PER_PAGE)
+            .select('-channel')
+            .populate('user', 'username')
+            .exec(),
+        Message.countDocuments({ channel: channelID }).exec(),
+    ]);
 
-    res.json(messages);
+    const allPreviousPagesMessages = (page - 1) * MESSAGES_PER_PAGE;
+
+    res.json({
+        messages: messages,
+        hasMoreMessages: messageCount > messages.length + allPreviousPagesMessages,
+    });
 });

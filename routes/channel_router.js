@@ -3,6 +3,7 @@ const {
     getChannel,
     createNewChannel,
     handleChannelEdit,
+    editChannelName,
 } = require('../controllers/channel/channel');
 const {
     getChannelMessages,
@@ -28,6 +29,8 @@ channelRouter.put(
     validateMessageForm,
     editMessage
 );
+
+channelRouter.patch('/:channelID', checkAuthenticated, editChannelName);
 
 channelRouter.delete('/:channelID/messages/:messageID', checkAuthenticated, deleteMessage);
 

@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const { ObjectId } = require('mongoose').Types;
 const User = require('../../models/User');
+const Channel = require('../../models/Channel');
 
 /**
  * ! WILL ADD AUTH TO ONLY ALLOW IF REQUEST IS FROM SAME USER
@@ -23,20 +24,25 @@ exports.deleteUser = asyncHandler(async (req, res) => {
 });
 
 exports.removeFriend = asyncHandler(async (req, res) => {
-    if (!ObjectId.isValid(req.params.userID) || !ObjectId.isValid(req.query.userID)) {
+    const userID = req.params.userID;
+    const userToUnfriend = req.params.friendID;
+
+    if (!ObjectId.isValid(user) || !ObjectId.isValid(userToUnfriend)) {
         return res.status(400).end();
+    } else if (userID !== req.user._id) {
+        return res.status(401).end();
     }
 
     const [user, deletedFriend] = await Promise.all([
         User.findByIdAndUpdate(
-            req.params.userID,
+            user,
             {
-                $pull: { friends: { user: req.query.userID } },
+                $pull: { friends: { user: userToUnfriend } },
             },
             { new: true }
         ).exec(),
-        User.findByIdAndUpdate(req.query.userID, {
-            $pull: { friends: { user: req.params.userID } },
+        User.findByIdAndUpdate(userToUnfriend, {
+            $pull: { friends: { user: userID } },
         }).exec(),
     ]);
 
@@ -45,5 +51,30 @@ exports.removeFriend = asyncHandler(async (req, res) => {
     } else {
         await user.populate({ path: 'friends.user', options: { projection: 'username' } });
         res.json(user.friends);
+    }
+});
+
+exports.leaveChannel = asyncHandler(async (req, res) => {
+    const userID = req.params.userID;
+    const channelToLeave = req.params.channelID;
+
+    if (!ObjectId.isValid(userID) || !ObjectId.isValid(channelToLeave)) {
+        return res.status(400).end();
+    } else if (userID !== req.user._id) {
+        return res.status(401).end();
+    }
+
+    const channelLeft = await Channel.findByIdAndUpdate(
+        channelToLeave,
+        {
+            $pull: { participants: userID },
+        },
+        { new: true }
+    ).exec();
+
+    if (!channelLeft) {
+        res.status(404).end();
+    } else {
+        res.end();
     }
 });

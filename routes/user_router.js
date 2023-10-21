@@ -7,6 +7,7 @@ const {
     handleFriendRequest,
     deleteUser,
     removeFriend,
+    leaveChannel,
 } = require('../controllers/user/user');
 const { checkAuthenticated } = require('../controllers/auth/auth');
 
@@ -20,6 +21,6 @@ userRouter.get('/:userID/channels', checkAuthenticated, getChannelList);
 userRouter.put('/:userID/friends', checkAuthenticated, handleFriendRequest);
 
 userRouter.delete('/:userID', checkAuthenticated, deleteUser);
-userRouter.delete('/:userID/friends', checkAuthenticated, removeFriend);
+userRouter.delete('/:userID/friends/:friendID', checkAuthenticated, removeFriend);
 
 module.exports = userRouter;

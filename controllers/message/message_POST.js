@@ -41,6 +41,7 @@ exports.sendNewMessage = asyncHandler(async (req, res) => {
     channel.latestMessage = message._id;
 
     await Promise.all([message.save(), channel.save()]);
+    await message.populate('user', 'username');
 
     res.status(201).json(message);
 });
