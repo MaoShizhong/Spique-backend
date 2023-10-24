@@ -18,20 +18,6 @@ exports.getUsers = asyncHandler(async (req, res) => {
     res.json(users);
 });
 
-exports.getSpecificUser = asyncHandler(async (req, res) => {
-    if (!ObjectId.isValid(req.params.userID)) {
-        return res.status(400).end();
-    }
-
-    const user = await User.findById(req.params.userID, '-password -email').exec();
-
-    if (!user) {
-        res.status(404).end();
-    } else {
-        res.json(user);
-    }
-});
-
 exports.getFriendsList = asyncHandler(async (req, res) => {
     if (!ObjectId.isValid(req.params.userID)) {
         return res.status(400).end();

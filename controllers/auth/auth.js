@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
 const User = require('../../models/User');
+const { censorUserEmail } = require('../../helpers/email');
 
 exports.validateNewUserForm = [
     body('username')
@@ -57,8 +58,27 @@ exports.addNewUser = asyncHandler(async (req, res) => {
     });
 });
 
+exports.verifyPassword = asyncHandler(async (req, res) => {
+    // because password is not stored in req.user by default
+    const user = await User.findById(req.user._id);
+
+    if (!user) return res.status(404).end();
+
+    const matchingPassword = await bcrypt.compare(req.body.password, user.password);
+
+    if (matchingPassword) {
+        res.end();
+    } else {
+        res.status(401).end();
+    }
+});
+
 exports.login = (req, res) => {
-    res.status(201).json({ _id: req.user._id, username: req.user.username });
+    res.status(201).json({
+        _id: req.user._id,
+        username: req.user.username,
+        email: censorUserEmail(req.user.email),
+    });
 };
 
 exports.logout = (req, res, next) => {

@@ -6,6 +6,7 @@ const {
     acceptFriendRequest,
     rejectFriendRequest,
 } = require('../../helpers/friend_requests');
+const { body } = require('express-validator');
 
 exports.handleFriendRequest = asyncHandler(async (req, res) => {
     if (
@@ -41,3 +42,54 @@ exports.handleFriendRequest = asyncHandler(async (req, res) => {
 
     res.json(self.friends);
 });
+
+exports.changeUsername = [
+    body('username')
+        .isLength({ min: 3 })
+        .withMessage('Username must be at least 3 characters')
+        .isAlphanumeric()
+        .withMessage('Username can only contain letters A-Z (either case) or numbers'),
+
+    asyncHandler(async (req, res) => {
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            return res.status(400).end();
+        }
+
+        const existingUsername = await User.findOne({ username: req.body.username }).exec();
+        if (existingUsername) return res.status(403).end();
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user._id,
+            { username: req.body.username },
+            { new: true }
+        );
+
+        res.json({ newUsername: updatedUser.username });
+    }),
+];
+
+exports.changeEmail = [
+    body('email')
+        .notEmpty()
+        .withMessage('Email cannot be empty')
+        .isEmail()
+        .withMessage('Email must be a valid email format'),
+
+    asyncHandler(async (req, res) => {
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            return res.status(400).end();
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user._id,
+            { email: req.body.email },
+            { new: true }
+        );
+
+        res.json({ newEmail: censorUserEmail(updatedUser.email) });
+    }),
+];
