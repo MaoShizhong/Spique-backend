@@ -50,7 +50,11 @@ exports.addNewUser = asyncHandler(async (req, res) => {
             });
 
             await newUser.save();
-            res.status(201).json({ _id: newUser._id, username: newUser.username });
+            res.status(201).json({
+                _id: newUser._id,
+                username: newUser.username,
+                email: censorUserEmail(newUser.email),
+            });
         } catch (error) {
             // immediately end request and do not create new user if password failed to hash
             res.status(500).end();

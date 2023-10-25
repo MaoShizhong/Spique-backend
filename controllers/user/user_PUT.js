@@ -6,7 +6,8 @@ const {
     acceptFriendRequest,
     rejectFriendRequest,
 } = require('../../helpers/friend_requests');
-const { body } = require('express-validator');
+const { censorUserEmail } = require('../../helpers/email');
+const { body, validationResult } = require('express-validator');
 
 exports.handleFriendRequest = asyncHandler(async (req, res) => {
     if (
@@ -66,16 +67,16 @@ exports.changeUsername = [
             { new: true }
         );
 
-        res.json({ newUsername: updatedUser.username });
+        res.json({
+            _id: req.user._id,
+            username: updatedUser.username,
+            email: censorUserEmail(req.user.email),
+        });
     }),
 ];
 
 exports.changeEmail = [
-    body('email')
-        .notEmpty()
-        .withMessage('Email cannot be empty')
-        .isEmail()
-        .withMessage('Email must be a valid email format'),
+    body('email', 'Email must be a valid email format').isEmail(),
 
     asyncHandler(async (req, res) => {
         const errors = validationResult(req);
@@ -84,12 +85,19 @@ exports.changeEmail = [
             return res.status(400).end();
         }
 
+        const existingEmail = await User.findOne({ email: req.body.email }).exec();
+        if (existingEmail) return res.status(403).end();
+
         const updatedUser = await User.findByIdAndUpdate(
             req.user._id,
             { email: req.body.email },
             { new: true }
         );
 
-        res.json({ newEmail: censorUserEmail(updatedUser.email) });
+        res.json({
+            _id: req.user._id,
+            username: req.user.username,
+            email: censorUserEmail(updatedUser.email),
+        });
     }),
 ];
