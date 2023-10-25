@@ -15,8 +15,6 @@ exports.sendPasswordResetEmail = asyncHandler(async (req, res) => {
     const hash = createHash('sha3-256');
     const token = randomBytes(32).toString('base64url');
 
-    console.log(token);
-
     const hashedToken = hash.update(token).digest('base64');
 
     // Storing hashed token prevents anyone other than the recipient getting a usable reset token
@@ -28,6 +26,8 @@ exports.sendPasswordResetEmail = asyncHandler(async (req, res) => {
     if (!updatedUser) {
         res.status(404).end();
     } else {
+        // Send unhashed token (usable) to recipient
+        sendResetEmail(updatedUser.email, token);
         res.end();
     }
 });
