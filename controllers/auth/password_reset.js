@@ -73,26 +73,36 @@ exports.setNewPassword = [
             return res.status(400).json(errors.array());
         }
 
-        let token;
-        bcrypt.hash(req.params.tokenID, 0, (err, hashedToken) => (token = hashedToken));
+        const { token } = req.params;
+        const { password } = req.body;
 
-        bcrypt.hash(req.body.password, 10, async (err, hashedPassword) => {
+        const hash = createHash('sha3-256');
+        const hashedToken = hash.update(token).digest('base64');
+
+        bcrypt.hash(password, 10, async (err, hashedPassword) => {
             try {
                 const updatedUser = await User.findOneAndUpdate(
-                    { 'reset.token': token },
-                    { password: hashedPassword },
+                    { 'reset.token': hashedToken },
+                    { $set: { password: hashedPassword }, $unset: { reset: 1 } },
                     { new: true }
                 ).exec();
 
-                if (!updatedUser) {
-                    res.json(404).end();
-                } else {
-                    res.json({
-                        _id: updatedUser._id,
-                        username: updatedUser.username,
-                        email: censorUserEmail(updatedUser.email),
-                    });
-                }
+                // Force user to manually log in after password change
+                req.logout((err) => {
+                    req.session.destroy();
+                    res.clearCookie('connect.sid');
+
+                    if (err) res.status(500).end();
+                    else if (!updatedUser) {
+                        res.json(404).end();
+                    } else {
+                        res.json({
+                            _id: updatedUser._id,
+                            username: updatedUser.username,
+                            email: censorUserEmail(updatedUser.email),
+                        });
+                    }
+                });
             } catch (error) {
                 // immediately end request and do not modify the user document if password failed to hash
                 res.status(500).end();
