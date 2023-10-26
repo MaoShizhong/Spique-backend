@@ -7,15 +7,20 @@ module.exports = new LocalStrategy(async (username, password, done) => {
         const user = await User.findOne({ username: username });
 
         if (!user) {
-            return done(null, false, { message: 'Incorrect username or password' });
+            return done(null, false);
         }
 
         const matchingPassword = await bcrypt.compare(password, user.password);
         if (!matchingPassword) {
-            return done(null, false, { message: 'Incorrect username or password' });
+            return done(null, false);
         }
 
-        return done(null, user);
+        return done(null, {
+            _id: user._id.valueOf(),
+            username: user.username,
+            email: user.email,
+            isDemo: user.isDemo,
+        });
     } catch (err) {
         return done(err);
     }

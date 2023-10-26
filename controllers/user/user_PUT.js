@@ -58,11 +58,12 @@ exports.changeUsername = [
             return res.status(400).end();
         }
 
-        const existingUsername = await User.findOne({ username: req.body.username }).exec();
+        const existingUsername = await User.exists({ username: req.body.username }).exec();
         if (existingUsername) return res.status(403).end();
 
-        const updatedUser = await User.findByIdAndUpdate(
-            req.user._id,
+        // failsafe for demo account detail change
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: req.user._id, isDemo: { $ne: true } },
             { username: req.body.username },
             { new: true }
         );
@@ -85,11 +86,12 @@ exports.changeEmail = [
             return res.status(400).end();
         }
 
-        const existingEmail = await User.findOne({ email: req.body.email }).exec();
+        const existingEmail = await User.exists({ email: req.body.email }).exec();
         if (existingEmail) return res.status(403).end();
 
-        const updatedUser = await User.findByIdAndUpdate(
-            req.user._id,
+        // failsafe for demo account detail change
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: req.user._id, isDemo: { $ne: true } },
             { email: req.body.email },
             { new: true }
         );

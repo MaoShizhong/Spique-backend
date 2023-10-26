@@ -16,7 +16,7 @@ const passport = require('passport');
 
 const authRouter = Router();
 
-authRouter.post('/users', validateNewUserForm, addNewUser);
+authRouter.post('/users', validateNewUserForm, addNewUser, passport.authenticate('local'), login);
 authRouter.post('/users/:userID/password', checkAuthenticated, verifyPassword);
 
 authRouter.post('/password-tokens', sendPasswordResetEmail);

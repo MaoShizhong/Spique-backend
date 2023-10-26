@@ -9,7 +9,12 @@ exports.serialize = (user, done) => {
 exports.deserialize = async (id, done) => {
     try {
         const user = await User.findById(id).exec();
-        done(null, { _id: user._id.valueOf(), username: user.username, email: user.email });
+        done(null, {
+            _id: user._id.valueOf(),
+            username: user.username,
+            email: user.email,
+            isDemo: user.isDemo,
+        });
     } catch (error) {
         done(error);
     }

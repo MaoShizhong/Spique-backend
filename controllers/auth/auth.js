@@ -33,11 +33,24 @@ exports.validateNewUserForm = [
     ),
 ];
 
-exports.addNewUser = asyncHandler(async (req, res) => {
+exports.addNewUser = asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
         return res.status(400).json(errors.array());
+    }
+
+    const [existingUsername, existingEmail] = await Promise.all([
+        User.exists({ username: req.body.username }).exec(),
+        User.exists({ email: req.body.email }).exec(),
+    ]);
+
+    const existErrors = [];
+    if (existingUsername) existErrors.push({ msg: 'Username already in use' });
+    if (existingEmail) existErrors.push({ msg: 'Email already in use' });
+
+    if (existErrors.length) {
+        return res.status(400).json(existErrors);
     }
 
     bcrypt.hash(req.body.password, 10, async (err, hashedPassword) => {
@@ -50,14 +63,9 @@ exports.addNewUser = asyncHandler(async (req, res) => {
             });
 
             await newUser.save();
-            res.status(201).json({
-                _id: newUser._id,
-                username: newUser.username,
-                email: censorUserEmail(newUser.email),
-            });
+            next();
         } catch (error) {
-            // immediately end request and do not create new user if password failed to hash
-            res.status(500).end();
+            res.status(400).end();
         }
     });
 });
@@ -78,10 +86,13 @@ exports.verifyPassword = asyncHandler(async (req, res) => {
 });
 
 exports.login = (req, res) => {
+    const { _id, username, email, isDemo } = req.user;
+
     res.status(201).json({
-        _id: req.user._id,
-        username: req.user.username,
-        email: censorUserEmail(req.user.email),
+        _id: _id,
+        username: username,
+        email: censorUserEmail(email),
+        isDemo: isDemo,
     });
 };
 

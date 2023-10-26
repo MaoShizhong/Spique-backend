@@ -44,8 +44,6 @@ exports.handleChannelEdit = asyncHandler(async (req, res) => {
         await Channel.deleteOne({ _id: channelID });
     }
 
-    console.log(channel.name ?? generateChannelName(channel.participants, req.user.username));
-
     res.status(status).json({
         newChannelName:
             channel.name ?? generateChannelName(channel.participants, req.user.username),
