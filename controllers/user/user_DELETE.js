@@ -36,7 +36,7 @@ exports.removeFriend = asyncHandler(async (req, res) => {
 
     const [user, deletedFriend] = await Promise.all([
         User.findByIdAndUpdate(
-            user,
+            userID,
             {
                 $pull: { friends: { user: friendID } },
             },

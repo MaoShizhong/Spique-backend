@@ -1,17 +1,12 @@
 const asyncHandler = require('express-async-handler');
 const { ObjectId } = require('mongoose').Types;
 const User = require('../../models/User');
-const {
-    sendFriendRequest,
-    acceptFriendRequest,
-    rejectFriendRequest,
-} = require('../../helpers/friend_requests');
+const { acceptFriendRequest, rejectFriendRequest } = require('../../helpers/friend_requests');
 const { censorUserEmail } = require('../../helpers/email');
 const { body, validationResult } = require('express-validator');
 
-exports.handleFriendRequest = asyncHandler(async (req, res) => {
-    const userID = req.params.userID;
-    const targetID = req.query.userID;
+exports.respondToFriendRequest = asyncHandler(async (req, res) => {
+    const { userID, targetID } = req.params;
     const action = req.query.action;
 
     if (!targetID || !ObjectId.isValid(userID) || !ObjectId.isValid(targetID)) {
@@ -26,9 +21,6 @@ exports.handleFriendRequest = asyncHandler(async (req, res) => {
     if (!self || !targetUser) return res.status(404).end();
 
     switch (action) {
-        case 'add':
-            sendFriendRequest(self, targetUser);
-            break;
         case 'accept':
             acceptFriendRequest(self, targetUser);
             break;

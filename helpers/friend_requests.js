@@ -1,12 +1,4 @@
 const asyncHandler = require('express-async-handler');
-const { ObjectId } = require('mongoose').Types;
-
-exports.sendFriendRequest = asyncHandler(async (self, target) => {
-    self.friends = [...self.friends, { user: new ObjectId(target._id), status: 'requested' }];
-    target.friends = [...target.friends, { user: new ObjectId(self._id), status: 'incoming' }];
-
-    await Promise.all([self.save(), target.save()]);
-});
 
 exports.acceptFriendRequest = asyncHandler(async (self, target) => {
     const incoming = self.friends.find((entry) => entry.user.valueOf() === target._id.valueOf());

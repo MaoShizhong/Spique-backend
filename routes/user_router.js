@@ -3,7 +3,8 @@ const {
     getUsers,
     getFriendsList,
     getChannelList,
-    handleFriendRequest,
+    sendFriendRequest,
+    respondToFriendRequest,
     changeUsername,
     changeEmail,
     deleteUser,
@@ -17,7 +18,9 @@ userRouter.get('/', checkAuthenticated, getUsers);
 userRouter.get('/:userID/friends', checkAuthenticated, getFriendsList);
 userRouter.get('/:userID/channels', checkAuthenticated, getChannelList);
 
-userRouter.put('/:userID/friends', checkAuthenticated, handleFriendRequest);
+userRouter.post('/:userID/friends/:targetID', checkAuthenticated, sendFriendRequest);
+
+userRouter.put('/:userID/friends/:targetID', checkAuthenticated, respondToFriendRequest);
 userRouter.put('/:userID/username', checkAuthenticated, changeUsername);
 userRouter.put('/:userID/email', checkAuthenticated, changeEmail);
 
