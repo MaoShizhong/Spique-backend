@@ -43,9 +43,16 @@ passport.deserializeUser(deserialize);
     - Initialise middleware
 */
 app.use(logger('dev'));
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(
+    cors({
+        origin: process.env.ALLOWED_ORIGINS.split(','),
+        credentials: true,
+    })
+);
 app.use(
     session({
         secret: process.env.SESSION_SECRET,
@@ -61,12 +68,6 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(
-    cors({
-        origin: process.env.ALLOWED_ORIGINS.split(','),
-        credentials: true,
-    })
-);
 
 /*
     - Initialise routers
