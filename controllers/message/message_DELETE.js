@@ -4,8 +4,7 @@ const Message = require('../../models/Message');
 const { ObjectId } = require('mongoose').Types;
 
 exports.deleteMessage = asyncHandler(async (req, res) => {
-    const messageID = req.params.messageID;
-    const channelID = req.params.channelID;
+    const { messageID, channelID } = req.params;
 
     if (!ObjectId.isValid(messageID) || !ObjectId.isValid(channelID)) {
         return res.status(400).end();

@@ -5,12 +5,14 @@ const Channel = require('../../models/Channel');
 const { generateChannelName } = require('../../helpers/channels');
 
 exports.getUsers = asyncHandler(async (req, res) => {
-    if (!req.query.search) return res.status(400).end();
+    const { search } = req.query;
+
+    if (!search) return res.status(400).end();
 
     const users = await User.find(
         {
             _id: { $not: { $eq: req.user._id } },
-            username: { $regex: req.query.search, $options: 'i' },
+            username: { $regex: search, $options: 'i' },
         },
         'username'
     ).exec();
@@ -19,11 +21,13 @@ exports.getUsers = asyncHandler(async (req, res) => {
 });
 
 exports.getFriendsList = asyncHandler(async (req, res) => {
-    if (!ObjectId.isValid(req.params.userID)) {
+    const { userID } = req.params;
+
+    if (!ObjectId.isValid(userID)) {
         return res.status(400).end();
     }
 
-    const { friends } = await User.findById(req.params.userID, 'friends -_id')
+    const { friends } = await User.findById(userID, 'friends -_id')
         .populate({ path: 'friends.user', options: { projection: 'username' } })
         .exec();
 
@@ -35,11 +39,12 @@ exports.getFriendsList = asyncHandler(async (req, res) => {
 });
 
 exports.getChannelList = asyncHandler(async (req, res) => {
-    const userID = req.params.userID;
+    const { userID } = req.params;
+    const { _id, username } = req.user;
 
     if (!ObjectId.isValid(userID)) {
         return res.status(400).end();
-    } else if (userID !== req.user._id) {
+    } else if (userID !== _id) {
         return res.status(401).end();
     }
 
@@ -55,7 +60,7 @@ exports.getChannelList = asyncHandler(async (req, res) => {
 
     const namedChannelList = channelList.map((channel) => {
         if (!channel.name) {
-            channel.name = generateChannelName(channel.participants, req.user.username);
+            channel.name = generateChannelName(channel.participants, username);
         }
 
         return channel;

@@ -10,22 +10,22 @@ const { censorUserEmail } = require('../../helpers/email');
 const { body, validationResult } = require('express-validator');
 
 exports.handleFriendRequest = asyncHandler(async (req, res) => {
-    if (
-        !req.query.userID ||
-        !ObjectId.isValid(req.query.userID) ||
-        !ObjectId.isValid(req.params.userID)
-    ) {
+    const userID = req.params.userID;
+    const targetID = req.query.userID;
+    const action = req.query.action;
+
+    if (!targetID || !ObjectId.isValid(userID) || !ObjectId.isValid(targetID)) {
         return res.status(400).end();
     }
 
     const [self, targetUser] = await Promise.all([
-        User.findById(req.params.userID).exec(),
-        User.findById(req.query.userID).exec(),
+        User.findById(userID).exec(),
+        User.findById(targetID).exec(),
     ]);
 
     if (!self || !targetUser) return res.status(404).end();
 
-    switch (req.query.action) {
+    switch (action) {
         case 'add':
             sendFriendRequest(self, targetUser);
             break;
@@ -58,20 +58,23 @@ exports.changeUsername = [
             return res.status(400).end();
         }
 
-        const existingUsername = await User.exists({ username: req.body.username }).exec();
+        const { username } = req.body;
+        const { _id, email } = req.user;
+
+        const existingUsername = await User.exists({ username: username }).exec();
         if (existingUsername) return res.status(403).end();
 
         // failsafe for demo account detail change
         const updatedUser = await User.findOneAndUpdate(
-            { _id: req.user._id, isDemo: { $ne: true } },
-            { username: req.body.username },
+            { _id: _id, isDemo: { $ne: true } },
+            { username: username },
             { new: true }
         );
 
         res.json({
-            _id: req.user._id,
+            _id: _id,
             username: updatedUser.username,
-            email: censorUserEmail(req.user.email),
+            email: censorUserEmail(email),
         });
     }),
 ];
@@ -86,19 +89,22 @@ exports.changeEmail = [
             return res.status(400).end();
         }
 
-        const existingEmail = await User.exists({ email: req.body.email }).exec();
+        const { email } = req.body;
+        const { _id, username } = req.user;
+
+        const existingEmail = await User.exists({ email: email }).exec();
         if (existingEmail) return res.status(403).end();
 
         // failsafe for demo account detail change
         const updatedUser = await User.findOneAndUpdate(
-            { _id: req.user._id, isDemo: { $ne: true } },
-            { email: req.body.email },
+            { _id: _id, isDemo: { $ne: true } },
+            { email: email },
             { new: true }
         );
 
         res.json({
-            _id: req.user._id,
-            username: req.user.username,
+            _id: _id,
+            username: username,
             email: censorUserEmail(updatedUser.email),
         });
     }),

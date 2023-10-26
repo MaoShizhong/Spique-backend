@@ -5,7 +5,8 @@ const Message = require('../../models/Message');
 exports.getChannelMessages = asyncHandler(async (req, res) => {
     const page = req.query.page ? parseInt(req.query.page) : 1;
     const MESSAGES_PER_PAGE = 40;
-    const channelID = req.params.channelID;
+
+    const { channelID } = req.params;
 
     if (page < 1 || Number.isNaN(page) || !ObjectId.isValid(channelID)) {
         return res.status(400).end();

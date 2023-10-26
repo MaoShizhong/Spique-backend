@@ -11,8 +11,7 @@ exports.editMessage = asyncHandler(async (req, res) => {
         return res.status(400).json(errors.array());
     }
 
-    const messageID = req.params.messageID;
-    const channelID = req.params.channelID;
+    const { messageID, channelID } = req.params;
 
     if (!ObjectId.isValid(messageID) || !ObjectId.isValid(channelID)) {
         return res.status(400).end();

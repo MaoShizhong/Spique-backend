@@ -7,13 +7,15 @@ const Channel = require('../../models/Channel');
  * ! WILL ADD AUTH TO ONLY ALLOW IF REQUEST IS FROM SAME USER
  */
 exports.deleteUser = asyncHandler(async (req, res) => {
-    if (!ObjectId.isValid(req.params.userID)) {
+    const { userID } = req.params;
+
+    if (!ObjectId.isValid(userID)) {
         return res.status(400).end();
     }
 
     const [user] = await Promise.all([
-        User.findByIdAndDelete(req.params.userID).exec(),
-        User.updateMany({}, { $pull: { friends: { user: req.params.userID } } }).exec(),
+        User.findByIdAndDelete(userID).exec(),
+        User.updateMany({}, { $pull: { friends: { user: userID } } }).exec(),
     ]);
 
     if (!user) {
@@ -24,10 +26,9 @@ exports.deleteUser = asyncHandler(async (req, res) => {
 });
 
 exports.removeFriend = asyncHandler(async (req, res) => {
-    const userID = req.params.userID;
-    const userToUnfriend = req.params.friendID;
+    const { userID, friendID } = req.params;
 
-    if (!ObjectId.isValid(user) || !ObjectId.isValid(userToUnfriend)) {
+    if (!ObjectId.isValid(userID) || !ObjectId.isValid(friendID)) {
         return res.status(400).end();
     } else if (userID !== req.user._id) {
         return res.status(401).end();
@@ -37,11 +38,11 @@ exports.removeFriend = asyncHandler(async (req, res) => {
         User.findByIdAndUpdate(
             user,
             {
-                $pull: { friends: { user: userToUnfriend } },
+                $pull: { friends: { user: friendID } },
             },
             { new: true }
         ).exec(),
-        User.findByIdAndUpdate(userToUnfriend, {
+        User.findByIdAndUpdate(friendID, {
             $pull: { friends: { user: userID } },
         }).exec(),
     ]);
@@ -55,17 +56,16 @@ exports.removeFriend = asyncHandler(async (req, res) => {
 });
 
 exports.leaveChannel = asyncHandler(async (req, res) => {
-    const userID = req.params.userID;
-    const channelToLeave = req.params.channelID;
+    const { userID, channelID } = req.params.userID;
 
-    if (!ObjectId.isValid(userID) || !ObjectId.isValid(channelToLeave)) {
+    if (!ObjectId.isValid(userID) || !ObjectId.isValid(channelID)) {
         return res.status(400).end();
     } else if (userID !== req.user._id) {
         return res.status(401).end();
     }
 
     const channelLeft = await Channel.findByIdAndUpdate(
-        channelToLeave,
+        channelID,
         {
             $pull: { participants: userID },
         },

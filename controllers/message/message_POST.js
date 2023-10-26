@@ -17,7 +17,8 @@ exports.sendNewMessage = asyncHandler(async (req, res) => {
         return res.status(400).json(errors.array());
     }
 
-    const channelID = req.params.channelID;
+    const { channelID } = req.params;
+
     if (!ObjectId.isValid(channelID)) {
         return res.status(400).end();
     }

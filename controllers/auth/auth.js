@@ -40,9 +40,11 @@ exports.addNewUser = asyncHandler(async (req, res, next) => {
         return res.status(400).json(errors.array());
     }
 
+    const { username, email, password } = req.body;
+
     const [existingUsername, existingEmail] = await Promise.all([
-        User.exists({ username: req.body.username }).exec(),
-        User.exists({ email: req.body.email }).exec(),
+        User.exists({ username: username }).exec(),
+        User.exists({ email: email }).exec(),
     ]);
 
     const existErrors = [];
@@ -53,11 +55,11 @@ exports.addNewUser = asyncHandler(async (req, res, next) => {
         return res.status(400).json(existErrors);
     }
 
-    bcrypt.hash(req.body.password, 10, async (err, hashedPassword) => {
+    bcrypt.hash(password, 10, async (err, hashedPassword) => {
         try {
             const newUser = new User({
-                username: req.body.username,
-                email: req.body.email,
+                username: username,
+                email: email,
                 password: hashedPassword,
                 friends: [],
             });
