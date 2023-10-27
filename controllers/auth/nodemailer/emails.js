@@ -34,7 +34,7 @@ exports.sendResetEmail = (recipient, token) => {
         attachments: [
             {
                 filename: 'spique-logo.png',
-                path: './spique-logo.png',
+                path: `${process.cwd()}/images/spique-logo.png`,
                 cid: 'spiqueLogo',
             },
         ],
