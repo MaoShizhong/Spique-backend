@@ -28,9 +28,11 @@ exports.deleteUser = asyncHandler(async (req, res) => {
 exports.removeFriend = asyncHandler(async (req, res) => {
     const { userID, friendID } = req.params;
 
-    if (!ObjectId.isValid(userID) || !ObjectId.isValid(friendID) || friendID === process.env.MAO) {
+    const demoDeletingMao = req.user.isDemo && friendID === process.env.MAO;
+
+    if (!ObjectId.isValid(userID) || !ObjectId.isValid(friendID)) {
         return res.status(400).end();
-    } else if (userID !== req.user._id) {
+    } else if (userID !== req.user._id || demoDeletingMao) {
         return res.status(401).end();
     }
 
