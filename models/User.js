@@ -12,7 +12,7 @@ const UserSchema = new Schema(
     {
         username: { type: String, unique: true, required: true },
         email: { type: String, unique: true, required: true },
-        password: { type: String, required: true },
+        password: String,
         friends: [FriendSchema],
         isDemo: Boolean,
         reset: {
@@ -20,6 +20,8 @@ const UserSchema = new Schema(
             expiry: Date,
             used: Boolean,
         },
+        auth: { type: String, enum: ['local', 'facebook'], required: true },
+        facebookID: String,
     },
     { versionKey: false }
 );

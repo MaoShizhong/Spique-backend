@@ -67,6 +67,7 @@ exports.changeUsername = [
             _id: _id,
             username: updatedUser.username,
             email: censorUserEmail(email),
+            isFacebook: updatedUser.auth === 'facebook',
         });
     }),
 ];
@@ -98,6 +99,7 @@ exports.changeEmail = [
             _id: _id,
             username: username,
             email: censorUserEmail(updatedUser.email),
+            isFacebook: updatedUser.auth === 'facebook',
         });
     }),
 ];

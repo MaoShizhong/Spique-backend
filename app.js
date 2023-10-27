@@ -31,10 +31,11 @@ try {
     - Initialise passport
 */
 const passport = require('passport');
-const LocalStrategy = require('./passport/strategies');
+const { localStrategy, facebookStrategy } = require('./passport/strategies');
 const { serialize, deserialize } = require('./passport/serialize');
 
-passport.use(LocalStrategy);
+passport.use(localStrategy);
+passport.use(facebookStrategy);
 
 passport.serializeUser(serialize);
 passport.deserializeUser(deserialize);

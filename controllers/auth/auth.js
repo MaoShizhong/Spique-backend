@@ -62,6 +62,7 @@ exports.addNewUser = asyncHandler(async (req, res, next) => {
                 email: email,
                 password: hashedPassword,
                 friends: [],
+                auth: 'local',
             });
 
             await newUser.save();
@@ -78,7 +79,7 @@ exports.verifyPassword = asyncHandler(async (req, res) => {
 
     if (!user) return res.status(404).end();
 
-    const matchingPassword = await bcrypt.compare(req.body.password, user.password);
+    const matchingPassword = bcrypt.compare(req.body.password, user.password);
 
     if (matchingPassword) {
         res.end();
@@ -87,14 +88,18 @@ exports.verifyPassword = asyncHandler(async (req, res) => {
     }
 });
 
+exports.redirectToDashboard = (_, res) =>
+    res.redirect(process.env.MODE === 'prod' ? process.env.PROD_CLIENT : process.env.DEV_CLIENT);
+
 exports.login = (req, res) => {
-    const { _id, username, email, isDemo } = req.user;
+    const { _id, username, email, isDemo, isFacebook } = req.user;
 
     res.status(201).json({
         _id: _id,
         username: username,
         email: censorUserEmail(email),
         isDemo: isDemo,
+        isFacebook: isFacebook,
     });
 };
 
