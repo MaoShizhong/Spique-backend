@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const { ObjectId } = require('mongoose').Types;
 const { addUserToChannel, leaveChannel, generateChannelName } = require('../../helpers/channels');
 const Channel = require('../../models/Channel');
+const Message = require('../../models/Message');
 const User = require('../../models/User');
 
 exports.handleChannelEdit = asyncHandler(async (req, res) => {
@@ -41,7 +42,10 @@ exports.handleChannelEdit = asyncHandler(async (req, res) => {
     }
 
     if (shouldDeleteChannel) {
-        await Channel.deleteOne({ _id: channelID });
+        await Promise.all([
+            Channel.deleteOne({ _id: channelID }),
+            Message.deleteMany({ channel: channelID }),
+        ]);
     }
 
     res.status(status).json({

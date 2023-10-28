@@ -14,7 +14,7 @@ exports.deserialize = async (id, done) => {
             username: user.username,
             email: user.email,
             isDemo: user.isDemo,
-            isFacebook: user.auth === 'facebook',
+            isGithub: user.auth === 'github',
         });
     } catch (error) {
         done(error);

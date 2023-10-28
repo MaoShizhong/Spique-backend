@@ -2,28 +2,8 @@ const asyncHandler = require('express-async-handler');
 const { ObjectId } = require('mongoose').Types;
 const User = require('../../models/User');
 const Channel = require('../../models/Channel');
-
-/**
- * ! WILL ADD AUTH TO ONLY ALLOW IF REQUEST IS FROM SAME USER
- */
-exports.deleteUser = asyncHandler(async (req, res) => {
-    const { userID } = req.params;
-
-    if (!ObjectId.isValid(userID)) {
-        return res.status(400).end();
-    }
-
-    const [user] = await Promise.all([
-        User.findByIdAndDelete(userID).exec(),
-        User.updateMany({}, { $pull: { friends: { user: userID } } }).exec(),
-    ]);
-
-    if (!user) {
-        res.status(404).end();
-    } else {
-        res.end();
-    }
-});
+const { sendDeletionEmail } = require('../auth/nodemailer/emails');
+const { randomBytes, createHash } = require('node:crypto');
 
 exports.removeFriend = asyncHandler(async (req, res) => {
     const { userID, friendID } = req.params;
@@ -77,6 +57,29 @@ exports.leaveChannel = asyncHandler(async (req, res) => {
     if (!channelLeft) {
         res.status(404).end();
     } else {
+        res.end();
+    }
+});
+
+exports.sendDeletionConfirmationEmail = asyncHandler(async (req, res) => {
+    const { userID } = req.params;
+
+    const hash = createHash('sha3-256');
+    const token = randomBytes(32).toString('base64url');
+
+    const hashedToken = hash.update(token).digest('base64');
+
+    // Storing hashed token prevents anyone other than the recipient getting a usable deletion token
+    // Expiry set to 10 minutes from generation
+    const updatedUser = await User.findByIdAndUpdate(userID, {
+        deletion: { token: hashedToken, expiry: new Date(Date.now() + 10 * 60 * 1000) },
+    }).exec();
+
+    if (!updatedUser) {
+        res.status(404).end();
+    } else {
+        // Send unhashed token (usable) to recipient
+        sendDeletionEmail(updatedUser.email, token);
         res.end();
     }
 });
