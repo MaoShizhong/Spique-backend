@@ -2,7 +2,9 @@ const asyncHandler = require('express-async-handler');
 const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
 const User = require('../../models/User');
+const Channel = require('../../models/Channel');
 const { censorUserEmail } = require('../../helpers/email');
+const { randomBytes, createHash } = require('node:crypto');
 
 exports.validateNewUserForm = [
     body('username')
@@ -42,14 +44,10 @@ exports.addNewUser = asyncHandler(async (req, res, next) => {
 
     const { username, email, password } = req.body;
 
-    const [existingUsername, existingEmail] = await Promise.all([
-        User.exists({ username: username }).exec(),
-        User.exists({ email: email }).exec(),
-    ]);
+    const [existingUsername] = await User.exists({ username: username }).exec();
 
     const existErrors = [];
     if (existingUsername) existErrors.push({ msg: 'Username already in use' });
-    if (existingEmail) existErrors.push({ msg: 'Email already in use' });
 
     if (existErrors.length) {
         return res.status(400).json(existErrors);
@@ -73,9 +71,44 @@ exports.addNewUser = asyncHandler(async (req, res, next) => {
     });
 });
 
+exports.deleteUser = asyncHandler(async (req, res) => {
+    const { token } = req.params;
+
+    const hash = createHash('sha3-256');
+    const hashedToken = hash.update(token).digest('base64');
+
+    console.log(hashedToken);
+
+    const userWithValidDeletionToken = await User.findOneAndDelete({
+        'deletion.token': hashedToken,
+        'deletion.expiry': { $gt: new Date() },
+    }).exec();
+
+    if (!userWithValidDeletionToken) {
+        res.status(401).end();
+    } else {
+        const _id = userWithValidDeletionToken._id;
+
+        await Promise.all([
+            User.updateMany({ 'friends.user': _id }, { $pull: { friends: { user: _id } } }).exec(),
+            Channel.updateMany({ participants: _id }, { $pull: { participants: _id } }).exec(),
+        ]);
+
+        if (req.session) req.session.destroy();
+
+        res.clearCookie('connect.sid', {
+            secure: process.env.MODE === 'prod',
+            maxAge: 2 * 24 * 60 * 60 * 1000,
+            httpOnly: process.env.MODE === 'prod',
+            sameSite: process.env.MODE === 'prod' ? 'none' : 'lax',
+        });
+        res.end();
+    }
+});
+
 exports.verifyPassword = asyncHandler(async (req, res) => {
     // because password is not stored in req.user by default
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).exec();
 
     if (!user) return res.status(404).end();
 
@@ -92,21 +125,28 @@ exports.redirectToDashboard = (_, res) =>
     res.redirect(process.env.MODE === 'prod' ? process.env.PROD_CLIENT : process.env.DEV_CLIENT);
 
 exports.login = (req, res) => {
-    const { _id, username, email, isDemo, isFacebook } = req.user;
+    const { _id, username, email, isDemo, isGithub } = req.user;
+
+    console.log(_id, username, email, isDemo, isGithub);
 
     res.status(201).json({
         _id: _id,
         username: username,
         email: censorUserEmail(email),
         isDemo: isDemo,
-        isFacebook: isFacebook,
+        isGithub: isGithub,
     });
 };
 
 exports.logout = (req, res, next) => {
     req.logout((err) => {
         req.session.destroy();
-        res.clearCookie('connect.sid');
+        res.clearCookie('connect.sid', {
+            secure: process.env.MODE === 'prod',
+            maxAge: 2 * 24 * 60 * 60 * 1000, // 2 days (refreshed every successful request)
+            httpOnly: process.env.MODE === 'prod',
+            sameSite: process.env.MODE === 'prod' ? 'none' : 'lax',
+        });
 
         if (err) next(err);
         else res.end();
@@ -114,6 +154,17 @@ exports.logout = (req, res, next) => {
 };
 
 exports.checkAuthenticated = (req, res, next) => {
-    if (req.isAuthenticated()) next();
-    else res.status(401).end();
+    if (req.isAuthenticated()) {
+        next();
+    } else {
+        if (req.session) req.session.destroy();
+
+        res.clearCookie('connect.sid', {
+            secure: process.env.MODE === 'prod',
+            maxAge: 2 * 24 * 60 * 60 * 1000, // 2 days (refreshed every successful request)
+            httpOnly: process.env.MODE === 'prod',
+            sameSite: process.env.MODE === 'prod' ? 'none' : 'lax',
+        });
+        res.status(401).end();
+    }
 };

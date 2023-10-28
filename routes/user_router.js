@@ -7,7 +7,7 @@ const {
     respondToFriendRequest,
     changeUsername,
     changeEmail,
-    deleteUser,
+    sendDeletionConfirmationEmail,
     removeFriend,
 } = require('../controllers/user/user');
 const { checkAuthenticated } = require('../controllers/auth/auth');
@@ -24,7 +24,7 @@ userRouter.put('/:userID/friends/:targetID', checkAuthenticated, respondToFriend
 userRouter.put('/:userID/username', checkAuthenticated, changeUsername);
 userRouter.put('/:userID/email', checkAuthenticated, changeEmail);
 
-userRouter.delete('/:userID', checkAuthenticated, deleteUser);
+userRouter.delete('/:userID', checkAuthenticated, sendDeletionConfirmationEmail);
 userRouter.delete('/:userID/friends/:friendID', checkAuthenticated, removeFriend);
 
 module.exports = userRouter;

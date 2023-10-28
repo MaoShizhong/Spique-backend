@@ -7,10 +7,10 @@ const { sendResetEmail } = require('./nodemailer/emails');
 const { randomBytes, createHash } = require('node:crypto');
 
 exports.sendPasswordResetEmail = asyncHandler(async (req, res) => {
-    const { userID, userEmail } = req.body;
-    if (!userID && !userEmail) return res.status(400).end();
+    const { userID, username } = req.body;
+    if (!userID && !username) return res.status(400).end();
 
-    const searchFilter = userID ? { _id: userID } : { email: userEmail };
+    const searchFilter = userID ? { _id: userID } : { username: username };
 
     const hash = createHash('sha3-256');
     const token = randomBytes(32).toString('base64url');
@@ -40,10 +40,23 @@ exports.verifyPasswordResetToken = asyncHandler(async (req, res) => {
 
     const userWithValidToken = await User.findOneAndUpdate(
         { 'reset.token': hashedToken, 'reset.expiry': { $gt: new Date() }, 'reset.used': false },
-        { 'reset.used': true }
+        { 'reset.used': true },
+        { new: true }
     ).exec();
 
+    console.log(userWithValidToken);
+
     if (!userWithValidToken) {
+        /*
+            Reset token record does not auto delete unless a new password is actually set.
+            In case a token is used but a new password not set, upon accessing an old link,
+            this record will be removed to save storage space.
+        */
+        await User.findOneAndUpdate(
+            { 'reset.token': hashedToken },
+            { $unset: { reset: 1 } }
+        ).exec();
+
         res.status(401).end();
     } else {
         res.end();
@@ -90,7 +103,12 @@ exports.setNewPassword = [
                 // Force user to manually log in after password change
                 req.logout((err) => {
                     req.session.destroy();
-                    res.clearCookie('connect.sid');
+                    res.clearCookie('connect.sid', {
+                        secure: process.env.MODE === 'prod',
+                        maxAge: 2 * 24 * 60 * 60 * 1000, // 2 days (refreshed every successful request)
+                        httpOnly: process.env.MODE === 'prod',
+                        sameSite: process.env.MODE === 'prod' ? 'none' : 'lax',
+                    });
 
                     if (err) res.status(500).end();
                     else if (!updatedUser) {

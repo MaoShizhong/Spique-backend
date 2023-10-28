@@ -63,11 +63,13 @@ exports.changeUsername = [
             { new: true }
         );
 
+        const isGithub = updatedUser.auth === 'github';
+
         res.json({
             _id: _id,
             username: updatedUser.username,
             email: censorUserEmail(email),
-            isFacebook: updatedUser.auth === 'facebook',
+            isGithub: isGithub,
         });
     }),
 ];
@@ -85,9 +87,6 @@ exports.changeEmail = [
         const { email } = req.body;
         const { _id, username } = req.user;
 
-        const existingEmail = await User.exists({ email: email }).exec();
-        if (existingEmail) return res.status(403).end();
-
         // failsafe for demo account detail change
         const updatedUser = await User.findOneAndUpdate(
             { _id: _id, isDemo: { $ne: true } },
@@ -99,7 +98,7 @@ exports.changeEmail = [
             _id: _id,
             username: username,
             email: censorUserEmail(updatedUser.email),
-            isFacebook: updatedUser.auth === 'facebook',
+            isGithub: false,
         });
     }),
 ];

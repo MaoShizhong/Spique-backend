@@ -11,8 +11,10 @@ const FriendSchema = new Schema(
 const UserSchema = new Schema(
     {
         username: { type: String, unique: true, required: true },
-        email: { type: String, unique: true, required: true },
+        auth: { type: String, enum: ['local', 'github'], required: true },
+        email: { type: String, required: true },
         password: String,
+        githubID: String,
         friends: [FriendSchema],
         isDemo: Boolean,
         reset: {
@@ -20,8 +22,10 @@ const UserSchema = new Schema(
             expiry: Date,
             used: Boolean,
         },
-        auth: { type: String, enum: ['local', 'facebook'], required: true },
-        facebookID: String,
+        deletion: {
+            token: String,
+            expiry: Date,
+        },
     },
     { versionKey: false }
 );

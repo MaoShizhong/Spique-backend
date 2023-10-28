@@ -4,6 +4,7 @@ const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const MongoStore = require('connect-mongo');
 const logger = require('morgan');
+
 require('dotenv').config();
 
 const app = express();
@@ -31,11 +32,11 @@ try {
     - Initialise passport
 */
 const passport = require('passport');
-const { localStrategy, facebookStrategy } = require('./passport/strategies');
+const { localStrategy, githubStrategy } = require('./passport/strategies');
 const { serialize, deserialize } = require('./passport/serialize');
 
 passport.use(localStrategy);
-passport.use(facebookStrategy);
+passport.use(githubStrategy);
 
 passport.serializeUser(serialize);
 passport.deserializeUser(deserialize);
@@ -43,6 +44,7 @@ passport.deserializeUser(deserialize);
 /*
     - Initialise middleware
 */
+
 app.use(logger('dev'));
 app.set('trust proxy', 1);
 app.use(express.json());
@@ -52,6 +54,7 @@ app.use(
     cors({
         origin: process.env.ALLOWED_ORIGINS.split(','),
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     })
 );
 app.use(
@@ -64,6 +67,7 @@ app.use(
             secure: process.env.MODE === 'prod',
             maxAge: 2 * 24 * 60 * 60 * 1000, // 2 days (refreshed every successful request)
             httpOnly: process.env.MODE === 'prod',
+            sameSite: process.env.MODE === 'prod' ? 'none' : 'lax',
         },
     })
 );

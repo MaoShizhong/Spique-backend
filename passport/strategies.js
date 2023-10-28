@@ -1,5 +1,5 @@
 const LocalStrategy = require('passport-local').Strategy;
-const FacebookStrategy = require('passport-facebook').Strategy;
+const GithubStrategy = require('passport-github2').Strategy;
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 
@@ -27,46 +27,45 @@ exports.localStrategy = new LocalStrategy(async (username, password, done) => {
     }
 });
 
-exports.facebookStrategy = new FacebookStrategy(
+exports.githubStrategy = new GithubStrategy(
     {
-        clientID: process.env.FACEBOOK_APP_ID,
-        clientSecret: process.env.FACEBOOK_APP_SECRET,
+        clientID: process.env.GITHUB_APP_ID,
+        clientSecret: process.env.GITHUB_APP_SECRET,
         callbackURL:
             process.env.MODE === 'prod'
-                ? process.env.PROD_FACEBOOK_CALLBACK_URL
-                : process.env.DEV_FACEBOOK_CALLBACK_URL,
+                ? process.env.PROD_GITHUB_CALLBACK_URL
+                : process.env.DEV_GITHUB_CALLBACK_URL,
         state: true,
-        profileFields: ['emails', 'displayName'],
+        scope: ['user:email'],
     },
     async (_, __, profile, done) => {
         try {
-            const { email, name, id } = profile._json;
-            const displayName = name.replaceAll(' ', '');
+            const { id, username, emails } = profile;
+            const email = emails[0].value;
 
-            const existingUser = await User.findOne({
-                auth: 'facebook',
-                facebookID: id,
-            }).exec();
+            const existingUser = await User.findOne({ auth: 'github', githubID: id }).exec();
 
             if (existingUser) {
                 done(null, {
                     _id: existingUser._id.valueOf(),
                     username: existingUser.username,
-                    email: existingUser.email,
+                    email: email,
                     isDemo: existingUser.isDemo,
-                    isFacebook: existingUser.auth === 'facebook',
+                    isGithub: existingUser.auth === 'github',
                 });
             } else {
+                const usernameRegex = new RegExp(`^${username}\\d*$`);
+
                 const existingUsernameCount = await User.countDocuments({
-                    username: { $regex: displayName },
+                    username: { $regex: usernameRegex },
                 }).exec();
 
                 const newUser = new User({
-                    username: `${displayName}${existingUsernameCount || ''}`,
+                    username: `${username}${existingUsernameCount || ''}`,
+                    auth: 'github',
                     email: email,
+                    githubID: id,
                     friends: [],
-                    auth: 'facebook',
-                    facebookID: id,
                 });
 
                 await newUser.save();
@@ -74,9 +73,9 @@ exports.facebookStrategy = new FacebookStrategy(
                 done(null, {
                     _id: newUser._id.valueOf(),
                     username: newUser.username,
-                    email: newUser.email,
+                    email: email,
                     isDemo: newUser.isDemo,
-                    isFacebook: newUser.auth === 'facebook',
+                    isGithub: newUser.auth === 'github',
                 });
             }
         } catch (err) {
