@@ -35,7 +35,6 @@ exports.githubStrategy = new GithubStrategy(
             process.env.MODE === 'prod'
                 ? process.env.PROD_GITHUB_CALLBACK_URL
                 : process.env.DEV_GITHUB_CALLBACK_URL,
-        state: true,
         scope: ['user:email'],
     },
     async (_, __, profile, done) => {
