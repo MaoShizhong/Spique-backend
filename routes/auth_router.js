@@ -26,7 +26,7 @@ authRouter.post('/password-tokens', sendPasswordResetEmail);
 authRouter.post('/password-tokens/:token', verifyPasswordResetToken);
 authRouter.put('/password-tokens/:token', setNewPassword);
 
-authRouter.get('/sessions', checkAuthenticated, login);
+authRouter.get('/sessions/all', checkAuthenticated, login);
 authRouter.post('/sessions/local', passport.authenticate('local'), login);
 
 /*
