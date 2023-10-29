@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const User = require('../../models/User');
 const Channel = require('../../models/Channel');
 const { censorUserEmail } = require('../../helpers/email');
-const { randomBytes, createHash } = require('node:crypto');
+const { createHash, randomBytes } = require('node:crypto');
 
 exports.validateNewUserForm = [
     body('username')
@@ -77,8 +77,6 @@ exports.deleteUser = asyncHandler(async (req, res) => {
     const hash = createHash('sha3-256');
     const hashedToken = hash.update(token).digest('base64');
 
-    console.log(hashedToken);
-
     const userWithValidDeletionToken = await User.findOneAndDelete({
         'deletion.token': hashedToken,
         'deletion.expiry': { $gt: new Date() },
@@ -121,13 +119,27 @@ exports.verifyPassword = asyncHandler(async (req, res) => {
     }
 });
 
-exports.redirectToDashboard = (_, res) =>
-    res.redirect(process.env.MODE === 'prod' ? process.env.PROD_CLIENT : process.env.DEV_CLIENT);
+exports.redirectToDashboard = asyncHandler(async (req, res) => {
+    const baseRedirectURL =
+        process.env.MODE === 'prod' ? process.env.PROD_CLIENT : process.env.DEV_CLIENT;
+
+    const hash = createHash('sha3-256');
+    const token = randomBytes(32).toString('base64url');
+
+    const hashedToken = hash.update(token).digest('base64');
+
+    // Storing hashed token prevents anyone other than the recipient getting a usable reset token
+    // Token will be used immediately by the client once loaded, which should verify then log in
+    await User.findByIdAndUpdate(req.session.passport.user, {
+        loginToken: hashedToken,
+    }).exec();
+
+    const redirectURL = `${baseRedirectURL}/login/${token}`;
+    res.redirect(redirectURL);
+});
 
 exports.login = (req, res) => {
     const { _id, username, email, isDemo, isGithub } = req.user;
-
-    console.log(_id, username, email, isDemo, isGithub);
 
     res.status(201).json({
         _id: _id,
@@ -154,17 +166,32 @@ exports.logout = (req, res, next) => {
 };
 
 exports.checkAuthenticated = (req, res, next) => {
-    if (req.isAuthenticated()) {
-        next();
-    } else {
-        if (req.session) req.session.destroy();
-
-        res.clearCookie('connect.sid', {
-            secure: process.env.MODE === 'prod',
-            maxAge: 2 * 24 * 60 * 60 * 1000, // 2 days (refreshed every successful request)
-            httpOnly: process.env.MODE === 'prod',
-            sameSite: process.env.MODE === 'prod' ? 'none' : 'lax',
-        });
-        res.status(401).end();
-    }
+    if (req.isAuthenticated()) next();
+    else res.status(401).end();
 };
+
+exports.loginFromRedirect = asyncHandler(async (req, res) => {
+    const { token } = req.params;
+
+    const hash = createHash('sha3-256');
+    const hashedToken = hash.update(token).digest('base64');
+
+    // Delete token immediately
+    const existingUser = await User.findOneAndUpdate(
+        { loginToken: hashedToken },
+        { $unset: { loginToken: 1 } },
+        { new: true }
+    ).exec();
+
+    if (!existingUser) {
+        res.status(404).end();
+    } else {
+        res.status(201).json({
+            _id: existingUser._id,
+            username: existingUser.username,
+            email: censorUserEmail(existingUser.email),
+            isDemo: existingUser.isDemo,
+            isGithub: existingUser.auth === 'github',
+        });
+    }
+});

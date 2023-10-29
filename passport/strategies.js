@@ -46,6 +46,13 @@ exports.githubStrategy = new GithubStrategy(
             const existingUser = await User.findOne({ auth: 'github', githubID: id }).exec();
 
             if (existingUser) {
+                // Update stored email if changed on GH
+                // because GH accounts on Spique cannot change their emails on the client
+                if (email !== existingUser.email) {
+                    existingUser.email = email;
+                    await existingUser.save();
+                }
+
                 done(null, {
                     _id: existingUser._id.valueOf(),
                     username: existingUser.username,

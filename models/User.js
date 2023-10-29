@@ -26,6 +26,7 @@ const UserSchema = new Schema(
             token: String,
             expiry: Date,
         },
+        loginToken: String,
     },
     { versionKey: false }
 );
