@@ -25,8 +25,6 @@ exports.getChannelMessages = asyncHandler(async (req, res) => {
 
     const allPreviousPagesMessages = (page - 1) * MESSAGES_PER_PAGE;
 
-    console.log(messages);
-
     res.json({
         messages: messages,
         hasMoreMessages: messageCount > messages.length + allPreviousPagesMessages,

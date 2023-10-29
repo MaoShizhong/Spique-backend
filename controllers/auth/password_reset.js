@@ -44,8 +44,6 @@ exports.verifyPasswordResetToken = asyncHandler(async (req, res) => {
         { new: true }
     ).exec();
 
-    console.log(userWithValidToken);
-
     if (!userWithValidToken) {
         /*
             Reset token record does not auto delete unless a new password is actually set.
