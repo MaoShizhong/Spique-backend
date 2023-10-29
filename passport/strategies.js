@@ -45,6 +45,10 @@ exports.githubStrategy = new GithubStrategy(
             const existingUser = await User.findOne({ auth: 'github', githubID: id }).exec();
 
             if (existingUser) {
+                console.log('---GITHUB: Existing---');
+                console.log('user:', existingUser);
+                console.log('---------------');
+
                 // Update stored email if changed on GH
                 // because GH accounts on Spique cannot change their emails on the client
                 if (email !== existingUser.email) {
@@ -74,6 +78,10 @@ exports.githubStrategy = new GithubStrategy(
                     friends: [],
                 });
 
+                console.log('---GITHUB: New---');
+                console.log('user:', newUser);
+                console.log('---------------');
+
                 await newUser.save();
 
                 done(null, {
@@ -85,6 +93,9 @@ exports.githubStrategy = new GithubStrategy(
                 });
             }
         } catch (err) {
+            console.log('---GITHUB: CATCH---');
+            console.log('CATCH:', err);
+            console.log('---------------');
             return done(err);
         }
     }

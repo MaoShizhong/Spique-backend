@@ -4,7 +4,7 @@ const {
     addNewUser,
     deleteUser,
     verifyPassword,
-    redirectToDashboard,
+    redirectToAutoLogin,
     login,
     loginFromRedirect,
     logout,
@@ -37,7 +37,7 @@ authRouter.post('/sessions/local', passport.authenticate('local'), login);
     - The 3rd uses this to actually log the user in (res.redirect in 2nd cannot set cookie cross-domain)
 */
 authRouter.get('/users/github', passport.authenticate('github', { scope: ['user:email'] }));
-authRouter.get('/sessions/github', passport.authenticate('github'), redirectToDashboard);
+authRouter.get('/sessions/github', passport.authenticate('github'), redirectToAutoLogin);
 authRouter.post('/sessions/github/:token', loginFromRedirect);
 
 authRouter.delete('/sessions', checkAuthenticated, logout);

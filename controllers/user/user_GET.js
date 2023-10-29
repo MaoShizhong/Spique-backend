@@ -23,6 +23,13 @@ exports.getUsers = asyncHandler(async (req, res) => {
 exports.getFriendsList = asyncHandler(async (req, res) => {
     const { userID } = req.params;
 
+    console.log('---getFriendsList---');
+    console.log('Session:', req.session);
+    console.log('Cookies:', req.cookies);
+    console.log('User:', req.user);
+    console.log('id', userID);
+    console.log('---------------');
+
     if (!ObjectId.isValid(userID)) {
         return res.status(400).end();
     }
@@ -41,6 +48,13 @@ exports.getFriendsList = asyncHandler(async (req, res) => {
 exports.getChannelList = asyncHandler(async (req, res) => {
     const { userID } = req.params;
     const { _id, username } = req.user;
+
+    console.log('---getChannelList---');
+    console.log('Session:', req.session);
+    console.log('Cookies:', req.cookies);
+    console.log('User:', req.user);
+    console.log('id', userID);
+    console.log('---------------');
 
     if (!ObjectId.isValid(userID)) {
         return res.status(400).end();

@@ -119,7 +119,13 @@ exports.verifyPassword = asyncHandler(async (req, res) => {
     }
 });
 
-exports.redirectToDashboard = asyncHandler(async (req, res) => {
+exports.redirectToAutoLogin = asyncHandler(async (req, res) => {
+    console.log('---redirectToAutoLogin---');
+    console.log('Session:', req.session);
+    console.log('Cookies:', req.cookies);
+    console.log('User:', req.user);
+    console.log('---------------');
+
     const baseRedirectURL =
         process.env.MODE === 'prod' ? process.env.PROD_CLIENT : process.env.DEV_CLIENT;
 
@@ -140,6 +146,12 @@ exports.redirectToDashboard = asyncHandler(async (req, res) => {
 
 exports.login = (req, res) => {
     const { _id, username, email, isDemo, isGithub } = req.user;
+
+    console.log('---normal login---');
+    console.log('Session:', req.session);
+    console.log('Cookies:', req.cookies);
+    console.log('User:', req.user);
+    console.log('---------------');
 
     res.status(201).json({
         _id: _id,
@@ -166,6 +178,13 @@ exports.logout = (req, res, next) => {
 };
 
 exports.checkAuthenticated = (req, res, next) => {
+    console.log('---checkAuthenticated---');
+    console.log('Session:', req.session);
+    console.log('Cookies:', req.cookies);
+    console.log('User:', req.user);
+    console.log('Auth:', req.isAuthenticated());
+    console.log('---------------');
+
     if (req.isAuthenticated()) next();
     else res.status(401).end();
 };
@@ -183,9 +202,20 @@ exports.loginFromRedirect = asyncHandler(async (req, res) => {
         { new: true }
     ).exec();
 
+    console.log('---loginFromRedirect---');
+    console.log('Session:', req.session);
+    console.log('Cookies:', req.cookies);
+    console.log('User:', req.user);
+    console.log('loginUser:', existingUser);
+    console.log('---------------');
+
     if (!existingUser) {
         res.status(404).end();
     } else {
+        req.session.passport = { user: existingUser._id.valueOf() };
+
+        console.log('New session with passport:', req.session);
+
         res.status(201).json({
             _id: existingUser._id,
             username: existingUser.username,
