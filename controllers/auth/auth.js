@@ -119,6 +119,32 @@ exports.verifyPassword = asyncHandler(async (req, res) => {
     }
 });
 
+exports.logout = (req, res, next) => {
+    req.logout((err) => {
+        req.session.destroy();
+        res.clearCookie('connect.sid', {
+            secure: process.env.MODE === 'prod',
+            maxAge: 2 * 24 * 60 * 60 * 1000,
+            httpOnly: process.env.MODE === 'prod',
+            sameSite: process.env.MODE === 'prod' ? 'none' : 'lax',
+        });
+
+        if (err) next(err);
+        else res.end();
+    });
+};
+
+exports.checkAuthenticated = (req, res, next) => {
+    if (req.isAuthenticated()) next();
+    else res.status(401).end();
+};
+
+/*
+    Cross-domain cookies will not be set on a redirect (browser security).
+    This works around that by sending a unique one-time login URL which will
+    then verify against a hashed stored login code (loginFromRedirect - line 178)
+    where that will set the right session cookie
+*/
 exports.redirectToDashboard = asyncHandler(async (req, res) => {
     const baseRedirectURL =
         process.env.MODE === 'prod' ? process.env.PROD_CLIENT : process.env.DEV_CLIENT;
@@ -150,26 +176,6 @@ exports.login = (req, res) => {
     });
 };
 
-exports.logout = (req, res, next) => {
-    req.logout((err) => {
-        req.session.destroy();
-        res.clearCookie('connect.sid', {
-            secure: process.env.MODE === 'prod',
-            maxAge: 2 * 24 * 60 * 60 * 1000, // 2 days (refreshed every successful request)
-            httpOnly: process.env.MODE === 'prod',
-            sameSite: process.env.MODE === 'prod' ? 'none' : 'lax',
-        });
-
-        if (err) next(err);
-        else res.end();
-    });
-};
-
-exports.checkAuthenticated = (req, res, next) => {
-    if (req.isAuthenticated()) next();
-    else res.status(401).end();
-};
-
 exports.loginFromRedirect = asyncHandler(async (req, res) => {
     const { token } = req.params;
 
@@ -186,6 +192,15 @@ exports.loginFromRedirect = asyncHandler(async (req, res) => {
     if (!existingUser) {
         res.status(404).end();
     } else {
+        /*
+            Must be manually added - would normally be added by `passport.authenticate()`
+            but calling `passport.authenticate('github')` manually after the redirect will
+            just start the auth process all over again and lead back to a redirect issue.
+            Therefore, simply manually serialize the user._id to session here so autologin
+            can persist login state on refresh.
+        */
+        req.session.passport = { user: existingUser._id.valueOf() };
+
         res.status(201).json({
             _id: existingUser._id,
             username: existingUser.username,
