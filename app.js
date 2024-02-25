@@ -53,8 +53,7 @@ app.use(cookieParser());
 app.use(
     cors({
         origin: process.env.ALLOWED_ORIGINS.split(','),
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+        // credentials: true,
     })
 );
 app.use(
